@@ -1,0 +1,3 @@
+[submodule "cocotb/cocotbify"]
+	path = cocotb/cocotbify
+	url = https://github.com/Martoni/cocotbify.git

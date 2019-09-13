@@ -152,6 +152,6 @@ object Spi2Wb extends App {
   println("****************************")
   println("Virgin module")
   chisel3.Driver.execute(Array[String](), () => new Spi2Wb())
-//  println("Real world module with reset inverted")
-//  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb())
+  println("Real world module with reset inverted")
+  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb())
 }
