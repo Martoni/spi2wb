@@ -7,10 +7,11 @@ import chisel3.Driver
 
 // minimal signals definition for a wishbone bus 
 // (no SEL, no TAG, no pipeline, ...)
-class WbMaster (private val dwith: Int, private val awith: Int) extends Bundle {
-    val adr_o = Output(UInt(awith.W))
-    val dat_i = Input(UInt(dwith.W))
-    val dat_o = Output(UInt(dwith.W))
+class WbMaster (private val dwidth: Int,
+                private val awidth: Int) extends Bundle {
+    val adr_o = Output(UInt(awidth.W))
+    val dat_i = Input(UInt(dwidth.W))
+    val dat_o = Output(UInt(dwidth.W))
     val we_o = Output(Bool())
     val stb_o = Output(Bool())
     val ack_i = Input(Bool())
@@ -24,26 +25,26 @@ class SpiSlave extends Bundle {
     val csn = Input(Bool())
 }
 
-class Spi2Wb extends Module {
+class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   val io = IO(new Bundle{
+    // Wishbone master output
+    val wbm = new WbMaster(dwidth, awidth)
     // SPI signals
     val spi = new SpiSlave()
-    // Wishbone master output
-    val wbm = new WbMaster(8, 7)
   })
 
-  // TODO: wishbone interface
-  io.wbm.adr_o := 0.U
-  io.wbm.dat_o := 0.U
-  io.wbm.we_o := 0.U
-  io.wbm.stb_o := 0.U
-  io.wbm.cyc_o := 0.U
+  assert(dwidth == 8, "Only 8bits data actually supported")
+  assert(awidth == 7, "Only 7bits address actually supported")
+
+  // Wishbone init
+  val wbWeReg  = RegInit(false.B)
+  val wbStbReg = RegInit(false.B)
+  val wbCycReg = RegInit(false.B)
 
   // CPOL  | leading edge | trailing edge
   // ------|--------------|--------------
   // false | rising       | falling
   // true  | falling      | rising
-
   val CPOL = false
   assert(CPOL==false, "Only CPOL==false supported")
 
@@ -53,44 +54,107 @@ class Spi2Wb extends Module {
   // true  | leading edge   | trailing edge
   val CPHA = true
   assert(CPHA==true, "Only CPHA==true supported")
-  val width = 8
-  val count = RegInit("hff".U(width.W))
 
   def risingedge(x: Bool) = x && !RegNext(x)
   def fallingedge(x: Bool) = !x && RegNext(x)
 
   val misoReg = RegInit(true.B)
-  val mosiReg = RegNext(io.spi.mosi)
   val sclkReg = RegNext(io.spi.sclk)
   val csnReg =  RegNext(io.spi.csn)
 
-  val valueReg = RegInit("hca".U(width.W))
-  val readReg =  RegInit("h00".U(width.W))
-  val writeReg = RegInit("h00".U(width.W))
+  val valueReg = RegInit("hca".U(dwidth.W))
+  val dataReg  = RegInit("h00".U(dwidth.W))
+  val addrReg  = RegInit("h00".U(awidth.W))
 
-  io.spi.miso := misoReg
+  val wrReg  = RegInit(false.B)
+  val wbFlag = RegInit(false.B)
 
-  when(risingedge(csnReg)) {
-    when(count >= width.U) {
-      valueReg := writeReg
-    }
-  }.elsewhen(fallingedge(csnReg)) {
-    count := 0.U
-    readReg := valueReg
-    writeReg := 0.U
-  }.elsewhen((count < (2*width).U) && (csnReg === 0.U) ) {
-    when(risingedge(sclkReg)) {
-      when(count < width.U){
-        writeReg := writeReg | Cat(0.U((width-1).W), mosiReg) << count
+  val count = RegInit("hff".U(dwidth.W))
+  //   000    001     010     011        100     101            110
+  val sinit::swrreg::saddr::sdataread::swbread::sdatawrite::swbwrite::Nil=Enum(7)
+  val stateReg = RegInit(sinit)
+
+  switch(stateReg) {
+    is(sinit){
+      wrReg := false.B
+      count := 0.U
+      addrReg := 0.U
+      dataReg := 0.U
+      misoReg := false.B
+      wbWeReg  := false.B
+      wbStbReg := false.B
+      wbCycReg := false.B
+      when(fallingedge(csnReg)){
+        stateReg := swrreg
       }
-      count := count + 1.U
     }
-    when(fallingedge(sclkReg)) {
-      when(count >= width.U) {
-        misoReg := readReg(count - width.U)
+    is(swrreg){
+      when(fallingedge(sclkReg)){
+        wrReg := io.spi.mosi
+        count := 1.U
+        stateReg := saddr
       }
+    }
+    is(saddr){
+      when(fallingedge(sclkReg)){
+        addrReg := addrReg + (io.spi.mosi << (dwidth.U - count))
+        count := count + 1.U
+        when(count >= (dwidth.U - 1.U)) {
+          when(wrReg){
+            stateReg := sdatawrite
+          }
+          when(!wrReg){
+            wbWeReg  := false.B
+            wbStbReg := true.B
+            wbCycReg := true.B
+            stateReg := swbread
+          }
+        }
+      }
+    }
+    is(swbread){
+      valueReg := io.wbm.dat_i
+      wbStbReg := false.B
+      wbCycReg := false.B
+      stateReg := sdataread
+    }
+    is(sdataread){
+      when(risingedge(sclkReg)){
+        misoReg := dataReg(2.U*dwidth.U - count)
+        count := count + 1.U
+      }
+    }
+    is(sdatawrite){
+      when(fallingedge(sclkReg)){
+        dataReg := dataReg(dwidth-2,0) ## io.spi.mosi
+        count := count + 1.U
+      }
+      when(count >= 2.U*dwidth.U){
+        stateReg := swbwrite
+      }
+    }
+    is(swbwrite){
+        wbWeReg  := true.B
+        wbStbReg := true.B
+        wbCycReg := true.B
+        stateReg := sinit
     }
   }
+  // reset state machine to sinit when csn rise
+  // even if count is not right
+  when(risingedge(csnReg)){
+        stateReg := sinit
+  }
+
+  // spi signals
+  io.spi.miso := misoReg
+  // wishbone signals
+  io.wbm.adr_o := addrReg
+  io.wbm.dat_o := dataReg
+  io.wbm.we_o  := wbWeReg
+  io.wbm.stb_o := wbStbReg
+  io.wbm.cyc_o := wbCycReg
+
 }
 
 // Blinking module to validate hardware
@@ -114,6 +178,35 @@ class BlinkLed extends Module {
 
 }
 
+
+class MyMem (private val dwidth: Int, private val awidth: Int) extends Module {
+  val io = IO(new Bundle{
+    val wbm = Flipped(new WbMaster(dwidth, awidth))
+  })
+  // memory
+  val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W)) 
+
+  val ackReg = RegInit(false.B)
+  val datReg = RegInit(0.U(dwidth.W))
+
+  ackReg := false.B
+  datReg := 0.U(dwidth.W)
+  when(io.wbm.stb_o && io.wbm.cyc_o) {
+    when(io.wbm.we_o){
+      wmem.write(io.wbm.adr_o, io.wbm.dat_o)
+      datReg := DontCare
+    }.otherwise{
+      datReg := wmem.read(io.wbm.adr_o, io.wbm.stb_o &
+                          io.wbm.cyc_o & !io.wbm.we_o)
+    }
+    ackReg := true.B
+  }
+  io.wbm.dat_i := datReg
+  io.wbm.ack_i := ackReg
+}
+
+
+// Testing Spi2Wb with a memory connnexion
 class TopSpi2Wb extends RawModule {
   // Clock & Reset
   val clock = IO(Input(Clock()))
@@ -127,6 +220,15 @@ class TopSpi2Wb extends RawModule {
   val miso = IO(Output(Bool()))
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
+  val deb_wbm = IO(new WbMaster(8, 7))
+  val deb_adr_o = IO(Output(Bool()))  
+  val deb_dat_o = IO(Output(Bool())) 
+  val deb_we_o  = IO(Output(Bool())) 
+  val deb_stb_o = IO(Output(Bool())) 
+  val deb_cyc_o = IO(Output(Bool())) 
+
+  val dwidth = 8
+  val awidth = 7
 
   withClockAndReset(clock, !rstn) {
     // Blink connections
@@ -134,15 +236,25 @@ class TopSpi2Wb extends RawModule {
     blink := blinkModule.io.blink
 
     // SPI to wb connections
-    val slavespi = Module(new Spi2Wb)
+    val slavespi = Module(new Spi2Wb(dwidth, awidth))
     miso := slavespi.io.spi.miso
     // spi
     slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
     slavespi.io.spi.sclk := ShiftRegister(sclk, 2) // used for clock
     slavespi.io.spi.csn  := ShiftRegister(csn, 2)  // synchronisation
-    // wb
-    slavespi.io.wbm.dat_i := 0.U
-    slavespi.io.wbm.ack_i := 0.U
+
+    // wb memory connexion
+    val mymem = Module(new MyMem(dwidth, awidth))
+    mymem.io.wbm <> slavespi.io.wbm
+
+    // Manage achnowledge
+    // TODO delete following
+    deb_wbm <> slavespi.io.wbm
+    deb_adr_o := slavespi.io.wbm.adr_o
+    deb_dat_o := slavespi.io.wbm.dat_o
+    deb_we_o  := slavespi.io.wbm.we_o 
+    deb_stb_o := slavespi.io.wbm.stb_o
+    deb_cyc_o := slavespi.io.wbm.cyc_o
   }
 }
 
@@ -151,7 +263,7 @@ object Spi2Wb extends App {
   println("* Generate verilog sources *")
   println("****************************")
   println("Virgin module")
-  chisel3.Driver.execute(Array[String](), () => new Spi2Wb())
+  chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
   println("Real world module with reset inverted")
   chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb())
 }

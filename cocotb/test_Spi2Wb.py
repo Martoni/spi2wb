@@ -10,7 +10,10 @@ from cocotb.triggers import RisingEdge
 from cocotb.triggers import FallingEdge
 from cocotb.triggers import ClockCycles
 
+
 class SlaveSpi(object):
+    INTERFRAME = (100, "ns")
+
     def __init__(self, dut, clock, cpol=0, cpha=1):
         self._dut = dut
         self._cpol = cpol
@@ -36,30 +39,33 @@ class SlaveSpi(object):
         self._dut.BlinkLed.countReg <= 0x989680 - 10
 
     @cocotb.coroutine
-    def sendReceiveFrame(self, sendValue):
-        value = sendValue
+    def sendReceiveFrame(self, raddr, dataValue=0):
         rvalue = 0
         short_per = Timer(100, units="ns")
         sclk_per = Timer(10, units="ns")
         self._dut.csn <= 0
         self._dut.sclk <= 0
         yield short_per
-        self._dut._log.info("Writing value 0x{:02X}".format(value))
-        # Writing value
+
+        # Writing addr
+        self._dut._log.info("Writing value 0x{:02X}".format(raddr))
         for i in range(8):
             self._dut.sclk <= 1
-            self._dut.mosi <= (value >> i) & 0x01
+            self._dut.mosi <= (raddr >> (8-i-1)) & 0x01
             yield sclk_per
             self._dut.sclk <= 0
             yield sclk_per
 
-        # reading value
+        yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
+
+        # reading/writing value
         for i in range(8):
             yield sclk_per
             self._dut.sclk <= 1
+            self._dut.mosi <= (dataValue >> (8-i-1)) & 0x01
             yield sclk_per
             self._dut.sclk <= 0
-            rvalue += int(self._dut.miso.value) << i
+            rvalue += int(self._dut.miso.value) << (8-i-1)
 
         self._dut.sclk <= 0
         self._dut.csn <= 0
@@ -70,6 +76,14 @@ class SlaveSpi(object):
         yield short_per
         raise ReturnValue(rvalue)
 
+    @cocotb.coroutine
+    def writeByte(self, addr, value):
+        yield self.sendReceiveFrame(0x80|addr, value)
+
+    @cocotb.coroutine
+    def readByte(self, addr):
+        ret = yield self.sendReceiveFrame(0x7F&addr)
+        raise ReturnValue(ret)
 
 @cocotb.test()
 def test_one_frame(dut):
@@ -78,23 +92,11 @@ def test_one_frame(dut):
     yield slavespi.reset()
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
-    value = int("01010101", 2)
-    rvalue = yield slavespi.sendReceiveFrame(value)
-    for i in range(10):
-        yield short_per
-    dut._log.info("Read value is 0x{:02x}".format(rvalue))
-    oldvalue = value
-    value = int("10101010", 2)
-    rvalue = yield slavespi.sendReceiveFrame(value)
-    if rvalue != oldvalue:
-        raise TestError("rvalue is 0x{:02X} and should be 0x{:02X}"
-                .format(rvalue, oldvalue))
-    dut._log.info("Read value is 0x{:02x}".format(rvalue))
-    oldvalue = value
-    value = int("11110000", 2)
-    rvalue = yield slavespi.sendReceiveFrame(value)
-    if rvalue != oldvalue:
-        raise TestError("rvalue is 0x{:02X} and should be 0x{:02X}"
-                .format(rvalue, oldvalue))
-    dut._log.info("Read value is 0x{:02x}".format(rvalue))
+
+    yield slavespi.writeByte(0x02, 0xca)
+    yield slavespi.writeByte(0x10, 0xfe)
+    vread = yield slavespi.readByte(0x02)
+    dut._log.info("Read byte 0x{:02}".format(vread))
+    vread = yield slavespi.readByte(0x10)
+    dut._log.info("Read byte 0x{:02}".format(vread))
 

@@ -9,3 +9,15 @@ don't forget the recursive option :
 ```
 $ git clone --recurse-submodules https://github.com/Martoni/spi2wb.git
 ```
+
+## Simulation instructions
+
+To simulate the module go to cocotb/ directory then do make :
+```
+$ make
+```
+
+To see waveform use gtkwave with following commande :
+```
+$ gtkwave TopSpi2Wb.vcd
+```
