@@ -1,3 +1,4 @@
+VIEW=gtkwave
 SIM=icarus
 export COCOTB_REDUCED_LOG_FMT=1
 TOPLEVEL=TopSpi2Wb
@@ -12,6 +13,14 @@ $(PWD)/$(TOPLEVEL)Cocotb.v: $(PWD)/../$(TOPLEVEL).v
 $(PWD)/../$(TOPLEVEL).v: $(PWD)/../src/main/scala/spi2wb.scala
 	cd $(PWD)/../; make
 
+view: 
+	$(VIEW) -a spi2wb.gtkw
+
 mrproper:
-	- rm $(PWD)/../$(TOPLEVEL).v
-	- rm $(PWD)/$(TOPLEVEL)Cocotb.v
+	-rm $(PWD)/../$(TOPLEVEL).v
+	-rm $(PWD)/$(TOPLEVEL)Cocotb.v
+	-rm $(TOPLEVEL).vcd
+	-rm -rf sim_build
+	-rm -rf build
+	-rm results.xml
+	-rm *.pyc
