@@ -1,0 +1,190 @@
+[*]
+[*] GTKWave Analyzer v3.3.79 (w)1999-2017 BSI
+[*] Tue Sep 17 09:01:14 2019
+[*]
+[dumpfile] "/usr/local/projects/videautom/gateware/hw_validation/spi2wb/cocotb/TopSpi2Wb.vcd"
+[dumpfile_mtime] "Tue Sep 17 08:58:46 2019"
+[dumpfile_size] 441239
+[savefile] "/usr/local/projects/videautom/gateware/hw_validation/spi2wb/cocotb/spi2wb.gtkw"
+[timestart] 0
+[size] 1920 1051
+[pos] -1 -1
+*-18.831482 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TopSpi2Wb.
+[treeopen] TopSpi2Wb.Spi2WbMem.
+[sst_width] 207
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 315
+@28
+TopSpi2Wb.Spi2WbMem_clock
+TopSpi2Wb.Spi2WbMem_reset
+TopSpi2Wb.Spi2WbMem_io_blink
+@200
+-spi
+@28
+TopSpi2Wb.Spi2WbMem_io_csn
+TopSpi2Wb.Spi2WbMem_io_miso
+TopSpi2Wb.Spi2WbMem_io_mosi
+TopSpi2Wb.Spi2WbMem_io_sclk
+@200
+-Wishbone
+@22
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_adr_o[6:0]
+@28
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_cyc_o
+@22
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_dat_i[7:0]
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_dat_o[7:0]
+@28
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_stb_o
+TopSpi2Wb.Spi2WbMem.slavespi.io_wbm_we_o
+@200
+-memory
+@28
+TopSpi2Wb.Spi2WbMem.mymem.ackReg
+TopSpi2Wb.Spi2WbMem.mymem.clock
+@22
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_adr_o[6:0]
+@28
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_cyc_o
+@22
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_dat_i[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_dat_o[7:0]
+@28
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_stb_o
+TopSpi2Wb.Spi2WbMem.mymem.io_wbm_we_o
+TopSpi2Wb.Spi2WbMem.mymem.reset
+@22
+TopSpi2Wb.Spi2WbMem.mymem.wmem_0[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_1[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_2[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_3[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_4[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_5[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_6[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_7[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_8[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_9[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_10[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_11[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_12[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_13[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_14[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_15[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_16[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_17[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_18[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_19[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_20[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_21[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_22[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_23[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_24[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_25[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_26[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_27[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_28[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_29[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_30[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_31[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_32[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_33[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_34[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_35[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_36[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_37[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_38[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_39[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_40[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_41[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_42[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_43[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_44[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_45[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_46[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_47[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_48[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_49[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_50[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_51[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_52[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_53[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_54[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_55[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_56[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_57[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_58[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_59[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_60[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_61[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_62[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_63[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_64[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_65[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_66[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_67[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_68[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_69[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_70[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_71[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_72[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_73[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_74[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_75[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_76[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_77[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_78[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_79[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_80[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_81[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_82[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_83[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_84[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_85[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_86[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_87[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_88[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_89[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_90[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_91[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_92[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_93[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_94[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_95[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_96[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_97[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_98[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_99[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_100[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_101[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_102[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_103[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_104[7:0]
+@23
+TopSpi2Wb.Spi2WbMem.mymem.wmem_105[7:0]
+@22
+TopSpi2Wb.Spi2WbMem.mymem.wmem_106[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_107[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_108[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_109[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_110[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_111[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_112[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_113[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_114[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_115[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_116[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_117[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_118[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_119[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_120[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_121[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_122[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_123[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_124[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_125[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_126[7:0]
+TopSpi2Wb.Spi2WbMem.mymem.wmem_127[7:0]
+[pattern_trace] 1
+[pattern_trace] 0
