@@ -51,7 +51,7 @@ class SlaveSpi(object):
         self._dut._log.info("Writing value 0x{:02X}".format(raddr))
         for i in range(8):
             self._dut.sclk <= 1
-            self._dut.mosi <= (raddr >> (8-i-1)) & 0x01
+            self._dut.mosi <= (raddr >> (7-i)) & 0x01
             yield sclk_per
             self._dut.sclk <= 0
             yield sclk_per

@@ -62,7 +62,6 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   val sclkReg = RegNext(io.spi.sclk)
   val csnReg =  RegNext(io.spi.csn)
 
-  val valueReg = RegInit("hca".U(dwidth.W))
   val dataReg  = RegInit("h00".U(dwidth.W))
   val addrReg  = RegInit("h00".U(awidth.W))
 
@@ -97,7 +96,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     }
     is(saddr){
       when(fallingedge(sclkReg)){
-        addrReg := addrReg + (io.spi.mosi << (dwidth.U - count))
+        addrReg := addrReg(awidth - 1, 0) ## io.spi.mosi
         count := count + 1.U
         when(count >= (dwidth.U - 1.U)) {
           when(wrReg){
@@ -113,7 +112,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       }
     }
     is(swbread){
-      valueReg := io.wbm.dat_i
+      dataReg  := io.wbm.dat_i
       wbStbReg := false.B
       wbCycReg := false.B
       stateReg := sdataread
@@ -178,41 +177,93 @@ class BlinkLed extends Module {
 
 }
 
-
-class MyMem (private val dwidth: Int, private val awidth: Int) extends Module {
+// Can't manage to make it works
+class MySyncMem (private val dwidth: Int, private val awidth: Int) extends Module {
   val io = IO(new Bundle{
     val wbm = Flipped(new WbMaster(dwidth, awidth))
   })
   // memory
   val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W)) 
 
-  val ackReg = RegInit(false.B)
-  val datReg = RegInit(0.U(dwidth.W))
-
+  val ackReg = Wire(Bool())
   ackReg := false.B
-  datReg := 0.U(dwidth.W)
+
+  io.wbm.dat_i := wmem.read(io.wbm.adr_o)
+
   when(io.wbm.stb_o && io.wbm.cyc_o) {
     when(io.wbm.we_o){
       wmem.write(io.wbm.adr_o, io.wbm.dat_o)
-      datReg := DontCare
-    }.otherwise{
-      datReg := wmem.read(io.wbm.adr_o, io.wbm.stb_o &
-                          io.wbm.cyc_o & !io.wbm.we_o)
     }
     ackReg := true.B
   }
-  io.wbm.dat_i := datReg
   io.wbm.ack_i := ackReg
 }
 
+// Use simple registers instead
+// But doesn't works too
+class MyRegMem (private val dwidth: Int, private val awidth: Int) extends Module {
+  val io = IO(new Bundle{
+    val wbm = Flipped(new WbMaster(dwidth, awidth))
+  })
+  // memory
+  val wmem = RegInit(VecInit(Seq.fill(1 << awidth)(0.U(dwidth.W))))
 
-// Testing Spi2Wb with a memory connnexion
+  val datReg = Wire(UInt(dwidth.W))
+  datReg := 0.U
+  val ackReg = Wire(Bool())
+  ackReg := false.B
+
+  when(io.wbm.stb_o && io.wbm.cyc_o) {
+    datReg := wmem(io.wbm.adr_o)
+    when(io.wbm.we_o){  // Write
+      wmem(io.wbm.adr_o) := io.wbm.dat_o
+    }
+    ackReg := true.B
+  }
+  io.wbm.ack_i := ackReg
+  io.wbm.dat_i := datReg
+}
+
+
+// «Top» module with memory connexion
+class Spi2WbMem (private val dwidth: Int,
+                 private val awidth: Int) extends Module {
+  val io = IO(new Bundle{
+    // Blink
+    val blink = Output(Bool())
+    // SPI
+    val mosi = Input(Bool())
+    val miso = Output(Bool())
+    val sclk = Input(Bool())
+    val csn  = Input(Bool())
+  })
+
+  // Blink connections
+  val blinkModule = Module(new BlinkLed)
+  io.blink := blinkModule.io.blink
+
+  // SPI to wb connections
+  val slavespi = Module(new Spi2Wb(dwidth, awidth))
+  io.miso := slavespi.io.spi.miso
+  // spi
+  slavespi.io.spi.mosi := ShiftRegister(io.mosi, 2) // ShiftRegister
+  slavespi.io.spi.sclk := ShiftRegister(io.sclk, 2) // used for clock
+  slavespi.io.spi.csn  := ShiftRegister(io.csn, 2)  // synchronisation
+
+  // wb memory connexion
+  val mymem = Module(new MyRegMem(dwidth, awidth))
+  mymem.io.wbm <> slavespi.io.wbm
+}
+
+
+// Testing Spi2Wb with a memory connexion
+// and reset inverted
 class TopSpi2Wb extends RawModule {
   // Clock & Reset
   val clock = IO(Input(Clock()))
   val rstn  = IO(Input(Bool()))
 
-  // Blink
+  // Simple blink
   val blink = IO(Output(Bool()))
 
   // SPI
@@ -220,41 +271,17 @@ class TopSpi2Wb extends RawModule {
   val miso = IO(Output(Bool()))
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
-  val deb_wbm = IO(new WbMaster(8, 7))
-  val deb_adr_o = IO(Output(Bool()))  
-  val deb_dat_o = IO(Output(Bool())) 
-  val deb_we_o  = IO(Output(Bool())) 
-  val deb_stb_o = IO(Output(Bool())) 
-  val deb_cyc_o = IO(Output(Bool())) 
 
   val dwidth = 8
   val awidth = 7
 
   withClockAndReset(clock, !rstn) {
-    // Blink connections
-    val blinkModule = Module(new BlinkLed)
-    blink := blinkModule.io.blink
-
-    // SPI to wb connections
-    val slavespi = Module(new Spi2Wb(dwidth, awidth))
-    miso := slavespi.io.spi.miso
-    // spi
-    slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
-    slavespi.io.spi.sclk := ShiftRegister(sclk, 2) // used for clock
-    slavespi.io.spi.csn  := ShiftRegister(csn, 2)  // synchronisation
-
-    // wb memory connexion
-    val mymem = Module(new MyMem(dwidth, awidth))
-    mymem.io.wbm <> slavespi.io.wbm
-
-    // Manage achnowledge
-    // TODO delete following
-    deb_wbm <> slavespi.io.wbm
-    deb_adr_o := slavespi.io.wbm.adr_o
-    deb_dat_o := slavespi.io.wbm.dat_o
-    deb_we_o  := slavespi.io.wbm.we_o 
-    deb_stb_o := slavespi.io.wbm.stb_o
-    deb_cyc_o := slavespi.io.wbm.cyc_o
+    val spi2Wb = new Spi2WbMem(dwidth, awidth)
+    blink := spi2Wb.io.blink
+    spi2Wb.io.mosi := mosi
+    miso := spi2Wb.io.miso
+    spi2Wb.io.sclk := sclk
+    spi2Wb.io.csn := csn
   }
 }
 
