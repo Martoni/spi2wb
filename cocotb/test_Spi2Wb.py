@@ -36,7 +36,6 @@ class SlaveSpi(object):
         yield short_per
         self._dut.rstn <= 1
         yield short_per
-        self._dut.BlinkLed.countReg <= 0x989680 - 10
 
     @cocotb.coroutine
     def sendReceiveFrame(self, raddr, dataValue=0):
@@ -92,11 +91,19 @@ def test_one_frame(dut):
     yield slavespi.reset()
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
-
-    yield slavespi.writeByte(0x02, 0xca)
-    yield slavespi.writeByte(0x10, 0xfe)
-    vread = yield slavespi.readByte(0x02)
-    dut._log.info("Read byte 0x{:02}".format(vread))
-    vread = yield slavespi.readByte(0x10)
-    dut._log.info("Read byte 0x{:02}".format(vread))
-
+    #              addr  value
+    testvalues = [(0x02, 0xca),
+                  (0x10, 0xfe),
+                  (0x00, 0x55),
+                  (0xFF, 0x12)]
+    # Writing values
+    for addr, value in testvalues:
+        dut._log.info("Write 0x{:02X} @ 0x{:02X}".format(value, addr))
+        yield slavespi.writeByte(addr, value)
+    # Reading back
+    for addr, value in testvalues:
+        vread = yield slavespi.readByte(addr)
+        dut._log.info("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
+        if vread != value:
+            raise TestError("Value read 0x{:02X} @0x{:02X} should be 0x{:02X}"
+                    .format(vread, addr, value))

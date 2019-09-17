@@ -119,7 +119,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     }
     is(sdataread){
       when(risingedge(sclkReg)){
-        misoReg := dataReg(2.U*dwidth.U - count)
+        misoReg := dataReg(2.U*dwidth.U - count - 1.U)
         count := count + 1.U
       }
     }
@@ -276,7 +276,7 @@ class TopSpi2Wb extends RawModule {
   val awidth = 7
 
   withClockAndReset(clock, !rstn) {
-    val spi2Wb = new Spi2WbMem(dwidth, awidth)
+    val spi2Wb = Module(new Spi2WbMem(dwidth, awidth))
     blink := spi2Wb.io.blink
     spi2Wb.io.mosi := mosi
     miso := spi2Wb.io.miso
