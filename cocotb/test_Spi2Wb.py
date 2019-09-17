@@ -84,6 +84,15 @@ class SlaveSpi(object):
         ret = yield self.sendReceiveFrame(0x7F&addr)
         raise ReturnValue(ret)
 
+    @cocotb.coroutine
+    def chipSelectLow(self, time=(10, "us")):
+        little_pause = Timer(10, "ns")
+        yield little_pause
+        self._dut.csn <= 0
+        yield Timer(time[0], units=time[1])
+        self._dut.csn <= 1
+        yield little_pause
+
 @cocotb.test()
 def test_one_frame(dut):
     dut._log.info("Launching slavespi test")
@@ -96,10 +105,16 @@ def test_one_frame(dut):
                   (0x10, 0xfe),
                   (0x00, 0x55),
                   (0xFF, 0x12)]
+
+    yield slavespi.chipSelectLow((1, "us"))
+
     # Writing values
     for addr, value in testvalues:
         dut._log.info("Write 0x{:02X} @ 0x{:02X}".format(value, addr))
         yield slavespi.writeByte(addr, value)
+
+    yield slavespi.chipSelectLow((1, "us"))
+
     # Reading back
     for addr, value in testvalues:
         vread = yield slavespi.readByte(addr)

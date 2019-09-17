@@ -79,7 +79,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       count := 0.U
       addrReg := 0.U
       dataReg := 0.U
-      misoReg := false.B
+      misoReg := true.B
       wbWeReg  := false.B
       wbStbReg := false.B
       wbCycReg := false.B
