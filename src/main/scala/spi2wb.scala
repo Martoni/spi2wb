@@ -5,7 +5,7 @@ import chisel3.util._
 import chisel3.experimental._
 import chisel3.Driver
 
-// minimal signals definition for a wishbone bus 
+// minimal signals definition for a wishbone bus
 // (no SEL, no TAG, no pipeline, ...)
 class WbMaster (private val dwidth: Int,
                 private val awidth: Int) extends Bundle {
@@ -112,12 +112,12 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       }
     }
     is(swbread){
-      dataReg  := io.wbm.dat_i
       wbStbReg := false.B
       wbCycReg := false.B
       stateReg := sdataread
     }
     is(sdataread){
+      dataReg  := io.wbm.dat_i
       when(risingedge(sclkReg)){
         misoReg := dataReg(2.U*dwidth.U - count - 1.U)
         count := count + 1.U
@@ -153,7 +153,6 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   io.wbm.we_o  := wbWeReg
   io.wbm.stb_o := wbStbReg
   io.wbm.cyc_o := wbCycReg
-
 }
 
 // Blinking module to validate hardware
@@ -177,85 +176,6 @@ class BlinkLed extends Module {
 
 }
 
-// Can't manage to make it works
-class MySyncMem (private val dwidth: Int, private val awidth: Int) extends Module {
-  val io = IO(new Bundle{
-    val wbm = Flipped(new WbMaster(dwidth, awidth))
-  })
-  // memory
-  val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W)) 
-
-  val ackReg = Wire(Bool())
-  ackReg := false.B
-
-  io.wbm.dat_i := wmem.read(io.wbm.adr_o)
-
-  when(io.wbm.stb_o && io.wbm.cyc_o) {
-    when(io.wbm.we_o){
-      wmem.write(io.wbm.adr_o, io.wbm.dat_o)
-    }
-    ackReg := true.B
-  }
-  io.wbm.ack_i := ackReg
-}
-
-// Use simple registers instead
-// But doesn't works too
-class MyRegMem (private val dwidth: Int, private val awidth: Int) extends Module {
-  val io = IO(new Bundle{
-    val wbm = Flipped(new WbMaster(dwidth, awidth))
-  })
-  // memory
-  val wmem = RegInit(VecInit(Seq.fill(1 << awidth)(0.U(dwidth.W))))
-
-  val datReg = Wire(UInt(dwidth.W))
-  datReg := 0.U
-  val ackReg = Wire(Bool())
-  ackReg := false.B
-
-  when(io.wbm.stb_o && io.wbm.cyc_o) {
-    datReg := wmem(io.wbm.adr_o)
-    when(io.wbm.we_o){  // Write
-      wmem(io.wbm.adr_o) := io.wbm.dat_o
-    }
-    ackReg := true.B
-  }
-  io.wbm.ack_i := ackReg
-  io.wbm.dat_i := datReg
-}
-
-
-// «Top» module with memory connexion
-class Spi2WbMem (private val dwidth: Int,
-                 private val awidth: Int) extends Module {
-  val io = IO(new Bundle{
-    // Blink
-    val blink = Output(Bool())
-    // SPI
-    val mosi = Input(Bool())
-    val miso = Output(Bool())
-    val sclk = Input(Bool())
-    val csn  = Input(Bool())
-  })
-
-  // Blink connections
-  val blinkModule = Module(new BlinkLed)
-  io.blink := blinkModule.io.blink
-
-  // SPI to wb connections
-  val slavespi = Module(new Spi2Wb(dwidth, awidth))
-  io.miso := slavespi.io.spi.miso
-  // spi
-  slavespi.io.spi.mosi := ShiftRegister(io.mosi, 2) // ShiftRegister
-  slavespi.io.spi.sclk := ShiftRegister(io.sclk, 2) // used for clock
-  slavespi.io.spi.csn  := ShiftRegister(io.csn, 2)  // synchronisation
-
-  // wb memory connexion
-  val mymem = Module(new MyRegMem(dwidth, awidth))
-  mymem.io.wbm <> slavespi.io.wbm
-}
-
-
 // Testing Spi2Wb with a memory connexion
 // and reset inverted
 class TopSpi2Wb extends RawModule {
@@ -276,12 +196,34 @@ class TopSpi2Wb extends RawModule {
   val awidth = 7
 
   withClockAndReset(clock, !rstn) {
-    val spi2Wb = Module(new Spi2WbMem(dwidth, awidth))
-    blink := spi2Wb.io.blink
-    spi2Wb.io.mosi := mosi
-    miso := spi2Wb.io.miso
-    spi2Wb.io.sclk := sclk
-    spi2Wb.io.csn := csn
+    // Blink connections
+    val blinkModule = Module(new BlinkLed)
+    blink := blinkModule.io.blink
+
+    // SPI to wb connections
+    val slavespi = Module(new Spi2Wb(dwidth, awidth))
+    miso := slavespi.io.spi.miso
+    // spi
+    slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
+    slavespi.io.spi.sclk := ShiftRegister(sclk, 2) // used for clock
+    slavespi.io.spi.csn  := ShiftRegister(csn, 2)  // synchronisation
+
+    // wb memory connexion
+    val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W))
+    val ackReg = Wire(Bool())
+
+    ackReg := false.B
+    when(slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o) {
+      when(slavespi.io.wbm.we_o){
+        // Write memory
+        wmem.write(slavespi.io.wbm.adr_o, slavespi.io.wbm.dat_o)
+      }
+      ackReg := true.B
+    }
+    // read memory
+    slavespi.io.wbm.dat_i := wmem.read(slavespi.io.wbm.adr_o)
+
+    slavespi.io.wbm.ack_i := ackReg
   }
 }
 

@@ -64,7 +64,10 @@ class SlaveSpi(object):
             self._dut.mosi <= (dataValue >> (8-i-1)) & 0x01
             yield sclk_per
             self._dut.sclk <= 0
-            rvalue += int(self._dut.miso.value) << (8-i-1)
+            try:
+                rvalue += int(self._dut.miso.value) << (8-i-1)
+            except ValueError:
+                pass
 
         self._dut.sclk <= 0
         self._dut.csn <= 0
