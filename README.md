@@ -101,7 +101,7 @@ The design has been tested with a [busPirate](https://sandboxelectronics.com/?pr
 A python script is available in hwtest/ directory to test the component with buspirate :
 - For 8 bits read/write:
 ```shell
-$  python3 test_bus_pirate.py -b8
+$  python3 test_bus_pirate.py -d8
 Write byte 0xCA @ 0x02
 Write byte 0xFE @ 0x10
 Write byte 0x55 @ 0x00
@@ -115,5 +115,6 @@ Read byte 0x12 @ 0xFF
 - For 16 bits read/write:
 
 ```shell
-$  python3 test_bus_pirate.py -b16
+$  python3 test_bus_pirate.py -d16
+<TO BE TESTED>
 ```
