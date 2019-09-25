@@ -99,8 +99,9 @@ This will generate a verilog top components named ```TopSpi2Wb.v```. This compon
 
 The design has been tested with a [busPirate](https://sandboxelectronics.com/?product=bus-pirate-v4-universal-interface-gadget).
 A python script is available in hwtest/ directory to test the component with buspirate :
+- For 8 bits read/write:
 ```shell
-$  python3 test_bus_pirate.py
+$  python3 test_bus_pirate.py -b8
 Write byte 0xCA @ 0x02
 Write byte 0xFE @ 0x10
 Write byte 0x55 @ 0x00
@@ -109,4 +110,10 @@ Read byte 0xCA @ 0x02
 Read byte 0xFE @ 0x10
 Read byte 0x55 @ 0x00
 Read byte 0x12 @ 0xFF
+```
+
+- For 16 bits read/write:
+
+```shell
+$  python3 test_bus_pirate.py -b16
 ```

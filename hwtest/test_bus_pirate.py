@@ -15,6 +15,7 @@
 """
 
 import sys
+import getopt
 from serial.serialutil import SerialException
 sys.path.append("/opt/pyBusPirate/")
 from pyBusPirateLite.SPI import *
@@ -32,7 +33,9 @@ class VbusPirate(object):
     SPI_CFG = SPICfg.OUT_TYPE
     PINS_CFG = PinCfg.POWER | PinCfg.CS | PinCfg.AUX
 
-    def __init__(self, devname=UART_DEVNAME, speed=UART_SPEED):
+    def __init__(self, devname=UART_DEVNAME, speed=UART_SPEED, datasize=8):
+        self._datasize=datasize
+        print("debug {}".format(devname))
         self.spi = SPI(devname, speed)
         if not self.spi.BBmode():
             raise VbusPirateError("Can't enter to binmode")
@@ -50,10 +53,18 @@ class VbusPirate(object):
         vbp.spi.CS_Low()
         resp = vbp.spi.bulk_trans([raddr])
         # Wait little bit
-        resp = vbp.spi.bulk_trans([dataValue])
+        # Then
+        if(self._datasize == 8):
+            resp = vbp.spi.bulk_trans([dataValue])
+        else:
+            resp = vbp.spi.bulk_trans([dataValue>>8, dataValue&0x00FF])
         vbp.spi.CS_High()
+        print("debug len {} resp {}".format(len(resp), resp))
         if type(resp) != bytes:
             resp = ord(resp[-1])
+        elif(len(resp) == 2):
+            print("debug resp {} {} {}".format(resp, resp[0], resp[1]))
+            resp = resp[0] + (resp[1]<<8)
         else:
             resp = ord(resp)
         return resp
@@ -65,26 +76,65 @@ class VbusPirate(object):
         ret = self.sendReceiveFrame(0x7F&addr)
         return ret
 
+def usage():
+    """ Print usages """
+    print("Usage :")
+    print("$ python3 test_bus_pirate.py [options]")
+    print("-h, --help             print this help message")
+    print("-d, --datasize [size]  set datasize [8,16]")
+
 
 if __name__ == "__main__":
     """ Testing spi2wb with buspirate"""
     if sys.version_info[0] < 3:
         raise Exception("Must be using Python 3")
 
-    vbp = VbusPirate()
-    #              addr  value
-    testvalues = [(0x02, 0xca),
-                  (0x10, 0xfe),
-                  (0x00, 0x55),
-                  (0xFF, 0x12)]
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hd:",
+                                   ["help", "datasize="])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(2)
+
+    datasize = 8
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-d", "--datasize"):
+            datasize = int(arg)
+
+    vbp = VbusPirate(datasize=datasize)
+    if(datasize == 8):
+        #              addr  value8
+        testvalues = [(0x02, 0xca),
+                      (0x10, 0xfe),
+                      (0x00, 0x55),
+                      (0xFF, 0x12)]
+    elif(datasize == 16):
+        #              addr  value16
+        testvalues = [(0x02, 0xcafe),
+                      (0x10, 0xfeca),
+                      (0x00, 0x5599),
+                      (0xFF, 0x1234)]
+    else:
+        raise Exception("{} datasize not supported".format(datasize))
+
     # Writing values
     for addr, value in testvalues:
-        print("Write byte 0x{:02X} @ 0x{:02X}".format(value, addr))
+        if datasize == 8:
+            print("Write byte 0x{:02X} @ 0x{:02X}".format(value, addr))
+        else:
+            print("Write byte 0x{:04X} @ 0x{:02X}".format(value, addr))
         vbp.writeByte(addr, value)
     # Reading back
     for addr, value in testvalues:
         vread = vbp.readByte(addr)
-        print("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
+        if datasize == 8:
+            print("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
+        else:
+            print("Read byte 0x{:04X} @ 0x{:02X}".format(vread, addr))
         if vread != value:
-            raise Exception("Value read 0x{:02X} @0x{:02X} should be 0x{:02X}"
+            raise Exception("Value read 0x{:04X} @0x{:02X} should be 0x{:04X}"
                     .format(vread, addr, value))
