@@ -1,3 +1,4 @@
+import os
 import cocotb
 import logging
 from cocotb.triggers import Timer
@@ -10,14 +11,16 @@ from cocotb.triggers import RisingEdge
 from cocotb.triggers import FallingEdge
 from cocotb.triggers import ClockCycles
 
+DATASIZE = os.environ['DATASIZE']
 
 class SlaveSpi(object):
     INTERFRAME = (100, "ns")
 
-    def __init__(self, dut, clock, cpol=0, cpha=1):
+    def __init__(self, dut, clock, cpol=0, cpha=1, datasize=DATASIZE):
         self._dut = dut
         self._cpol = cpol
         self._cpha = cpha
+        self.datasize = datasize
         if cpol == 1:
             raise Exception("cpol = 1 not implemented yet")
         if cpha == 0:
@@ -38,7 +41,7 @@ class SlaveSpi(object):
         yield short_per
 
     @cocotb.coroutine
-    def sendReceiveFrame(self, raddr, dataValue=0):
+    def sendReceiveFrame(self, raddr, dataValue=0, datasize=8):
         rvalue = 0
         short_per = Timer(100, units="ns")
         sclk_per = Timer(10, units="ns")
@@ -58,14 +61,14 @@ class SlaveSpi(object):
         yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
 
         # reading/writing value
-        for i in range(8):
+        for i in range(datasize):
             yield sclk_per
             self._dut.sclk <= 1
-            self._dut.mosi <= (dataValue >> (8-i-1)) & 0x01
+            self._dut.mosi <= (dataValue >> (datasize-i-1)) & 0x0001
             yield sclk_per
             self._dut.sclk <= 0
             try:
-                rvalue += int(self._dut.miso.value) << (8-i-1)
+                rvalue += int(self._dut.miso.value) << (datasize-i-1)
             except ValueError:
                 pass
 
@@ -79,12 +82,12 @@ class SlaveSpi(object):
         raise ReturnValue(rvalue)
 
     @cocotb.coroutine
-    def writeByte(self, addr, value):
-        yield self.sendReceiveFrame(0x80|addr, value)
+    def writeByte(self, addr, value, datasize=8):
+        yield self.sendReceiveFrame(0x80|addr, value, datasize=datasize)
 
     @cocotb.coroutine
-    def readByte(self, addr):
-        ret = yield self.sendReceiveFrame(0x7F&addr)
+    def readByte(self, addr, datasize=8):
+        ret = yield self.sendReceiveFrame(0x7F&addr, datasize=datasize)
         raise ReturnValue(ret)
 
     @cocotb.coroutine
@@ -97,30 +100,40 @@ class SlaveSpi(object):
         yield little_pause
 
 @cocotb.test()
-def test_one_frame(dut):
+def test_one_data_frame(dut):
     dut._log.info("Launching slavespi test")
     slavespi = SlaveSpi(dut, Clock(dut.clock, 1, "ns"))
+    datasize = int(slavespi.datasize)
+    dut._log.info("Datasize is {}".format(datasize))
     yield slavespi.reset()
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
-    #              addr  value
-    testvalues = [(0x02, 0xca),
-                  (0x10, 0xfe),
-                  (0x00, 0x55),
-                  (0xFF, 0x12)]
+    if(datasize==8):
+        #              addr  value
+        testvalues = [(0x02, 0xca),
+                      (0x10, 0xfe),
+                      (0x00, 0x55),
+                      (0xFF, 0x12)]
+    elif(datasize==16):
+        #              addr  value
+        testvalues = [(0x02, 0xcafe),
+                      (0x10, 0xfeca),
+                      (0x00, 0x5599),
+                      (0xFF, 0x1234)]
+    
 
     yield slavespi.chipSelectLow((1, "us"))
 
     # Writing values
     for addr, value in testvalues:
         dut._log.info("Write 0x{:02X} @ 0x{:02X}".format(value, addr))
-        yield slavespi.writeByte(addr, value)
+        yield slavespi.writeByte(addr, value, datasize=datasize)
 
     yield slavespi.chipSelectLow((1, "us"))
 
     # Reading back
     for addr, value in testvalues:
-        vread = yield slavespi.readByte(addr)
+        vread = yield slavespi.readByte(addr, datasize=datasize)
         dut._log.info("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
         if vread != value:
             raise TestError("Value read 0x{:02X} @0x{:02X} should be 0x{:02X}"

@@ -11,7 +11,7 @@ $(PWD)/$(TOPLEVEL)Cocotb.v: $(PWD)/../$(TOPLEVEL).v
 	python cocotbify/cocotbify.py -v $(PWD)/../$(TOPLEVEL).v -o $(PWD)/$(TOPLEVEL)Cocotb.v
 
 $(PWD)/../$(TOPLEVEL).v: $(PWD)/../src/main/scala/spi2wb.scala
-	cd $(PWD)/../; make
+	cd $(PWD)/../;DATASIZE=$(DATASIZE) make
 
 view: 
 	$(VIEW) -a spi2wb.gtkw

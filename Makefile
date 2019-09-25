@@ -1,7 +1,7 @@
-SBT = sbt
+SBT=sbt
 
 hdl:
-	$(SBT) "runMain spi2wb.Spi2Wb"
+	$(SBT) "runMain spi2wb.Spi2Wb$(DATASIZE)"
 
 test:
 	$(SBT) "test:runMain spi2wb.TestTopSpi2Wb"

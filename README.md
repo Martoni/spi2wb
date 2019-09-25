@@ -3,7 +3,14 @@ Drive a Wishbone master bus with an SPI bus.
 
 ## Protocol
 
+The [SPI configuration](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Clock_polarity_and_phase) is following :
+- CPOL = 0
+- CPHA = 1
+- CS = active low
+
 An spi2wb frame is composed as following :
+
+### 8 bits mode
 
 - Write frame:
 ```ascii
@@ -21,10 +28,24 @@ MISO : ZZZZZZZZ DDDDDDDD
 - DDDDDDD: 8 bits data
 - ZZZZZZZ: Don't care signal
 
-The [SPI configuration](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Clock_polarity_and_phase) is following :
-- CPOL = 0
-- CPHA = 1
-- CS = active low
+
+### 16 bits mode
+
+- Write frame:
+```ascii
+MOSI : 1AAAAAAA DDDDDDDDDDDDDDDD
+MISO : ZZZZZZZZ ZZZZZZZZZZZZZZZZ
+```
+- Read frame
+```ascii
+MOSI : 0AAAAAAA ZZZZZZZZZZZZZZZZ
+MISO : ZZZZZZZZ DDDDDDDDDDDDDDDD
+```
+ And with following :
+- 1/0: write/read bit
+- AAAAAAA: 7 bits address
+- DDDDDDDDDDDDDD: 16 bits data
+- ZZZZZZZZZZZZZZ: Don't care signal
 
 ## Install instructions
 
@@ -47,10 +68,16 @@ But the actual testbench is written with Python Cocotb module.
 
 ### Cocotb
 
-To simulate the module go to cocotb/ directory then do make :
+To simulate the module go to cocotb/ directory:
+- For 8 bits datasize do:
 ```shell
 $ cd cocotb
-$ make
+$ DATAZISE=8 make
+```
+- For 16 bits datasize do:
+```shell
+$ cd cocotb
+$ DATAZISE=16 make
 ```
 
 To see waveform use gtkwave with following command :
@@ -73,7 +100,7 @@ This will generate a verilog top components named ```TopSpi2Wb.v```. This compon
 The design has been tested with a [busPirate](https://sandboxelectronics.com/?product=bus-pirate-v4-universal-interface-gadget).
 A python script is available in hwtest/ directory to test the component with buspirate :
 ```shell
-$  python3 test_bus_pirate.py 
+$  python3 test_bus_pirate.py
 Write byte 0xCA @ 0x02
 Write byte 0xFE @ 0x10
 Write byte 0x55 @ 0x00

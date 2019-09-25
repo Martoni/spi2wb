@@ -33,8 +33,10 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     val spi = new SpiSlave()
   })
 
-  assert(dwidth == 8, "Only 8bits data actually supported")
-  assert(awidth == 7, "Only 7bits address actually supported")
+  assert(dwidth == 8 || dwidth == 16,
+    "Only 8bits or 16bits data actually supported")
+  assert(awidth == 7,
+    "Only 7bits address actually supported")
 
   // Wishbone init
   val wbWeReg  = RegInit(false.B)
@@ -68,7 +70,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   val wrReg  = RegInit(false.B)
   val wbFlag = RegInit(false.B)
 
-  val count = RegInit("hff".U(dwidth.W))
+  val count = RegInit("hffff".U(dwidth.W))
   //   000    001     010     011        100     101            110
   val sinit::swrreg::saddr::sdataread::swbread::sdatawrite::swbwrite::Nil=Enum(7)
   val stateReg = RegInit(sinit)
@@ -98,7 +100,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       when(fallingedge(sclkReg)){
         addrReg := addrReg(awidth - 1, 0) ## io.spi.mosi
         count := count + 1.U
-        when(count >= (dwidth.U - 1.U)) {
+        when(count >= awidth.U) {
           when(wrReg){
             stateReg := sdatawrite
           }
@@ -119,7 +121,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     is(sdataread){
       dataReg  := io.wbm.dat_i
       when(risingedge(sclkReg)){
-        misoReg := dataReg(2.U*dwidth.U - count - 1.U)
+        misoReg := dataReg((1 + awidth + dwidth).U - count - 1.U)
         count := count + 1.U
       }
     }
@@ -128,7 +130,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
         dataReg := dataReg(dwidth-2,0) ## io.spi.mosi
         count := count + 1.U
       }
-      when(count >= 2.U*dwidth.U){
+      when(count >= (1 + awidth + dwidth).U){
         stateReg := swbwrite
       }
     }
@@ -178,7 +180,7 @@ class BlinkLed extends Module {
 
 // Testing Spi2Wb with a memory connexion
 // and reset inverted
-class TopSpi2Wb extends RawModule {
+class TopSpi2Wb (val dwidth: Int) extends RawModule {
   // Clock & Reset
   val clock = IO(Input(Clock()))
   val rstn  = IO(Input(Bool()))
@@ -192,7 +194,6 @@ class TopSpi2Wb extends RawModule {
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
 
-  val dwidth = 8
   val awidth = 7
 
   withClockAndReset(clock, !rstn) {
@@ -228,11 +229,34 @@ class TopSpi2Wb extends RawModule {
 }
 
 object Spi2Wb extends App {
+  println("*********")
+  println("*  /!\\  *")
+  println("*********")
+  println("-> To Generate verilog sources choose datasize ")
+  println("* For 8 bits:")
+  println("$DATASIZE=8 make")
+  println("* For 16 bits:")
+  println("$DATASIZE=16 make")
+  println("")
+  println("No verilog generated")
+}
+
+object Spi2Wb8 extends App {
   println("****************************")
-  println("* Generate verilog sources *")
+  println("* Generate 8Bits data vers *")
   println("****************************")
   println("Virgin module")
   chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
   println("Real world module with reset inverted")
-  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb())
+  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(8))
+}
+
+object Spi2Wb16 extends App {
+  println("****************************")
+  println("* Generate 16Bits data vers*")
+  println("****************************")
+  println("Virgin module")
+  chisel3.Driver.execute(Array[String](), () => new Spi2Wb(16, 7))
+  println("Real world module with reset inverted")
+  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
 }
