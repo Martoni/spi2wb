@@ -17,3 +17,6 @@ libraryDependencies += "edu.berkeley.cs" %% "chisel-iotesters" % "1.2.10"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 scalacOptions ++= Seq("-language:reflectiveCalls")
+
+//publish local https://github.com/Martoni/WbPlumbing.git
+libraryDependencies ++= Seq("org.armadeus" %% "wbplumbing" % "0.1")

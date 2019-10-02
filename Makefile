@@ -4,7 +4,7 @@ hdl:
 	$(SBT) "runMain spi2wb.Spi2Wb$(DATASIZE)"
 
 test:
-	$(SBT) "test:runMain spi2wb.TestTopSpi2Wb"
+	cd cocotb/; DATASIZE=$(DATASIZE) make
 
 publishlocal:
 	$(SBT) publishLocal
