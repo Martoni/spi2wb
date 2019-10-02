@@ -1,3 +1,9 @@
+name := "spi2wb"
+
+version := "1.1"
+
+organization := "org.armadeus"
+
 scalaVersion := "2.11.7"
 
 resolvers ++= Seq(

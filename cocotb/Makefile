@@ -10,7 +10,7 @@ include $(COCOTB)/makefiles/Makefile.sim
 $(PWD)/$(TOPLEVEL)Cocotb.v: $(PWD)/../$(TOPLEVEL).v
 	python cocotbify/cocotbify.py -v $(PWD)/../$(TOPLEVEL).v -o $(PWD)/$(TOPLEVEL)Cocotb.v
 
-$(PWD)/../$(TOPLEVEL).v: $(PWD)/../src/main/scala/spi2wb.scala
+$(PWD)/../$(TOPLEVEL).v: $(PWD)/../src/main/scala/spi2wb/spi2wb.scala
 	cd $(PWD)/../;DATASIZE=$(DATASIZE) make
 
 view: 
