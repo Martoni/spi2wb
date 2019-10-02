@@ -6,6 +6,9 @@ hdl:
 test:
 	$(SBT) "test:runMain spi2wb.TestTopSpi2Wb"
 
+publishlocal:
+	$(SBT) publishLocal
+
 mrproper:
 	make -C cocotb/ mrproper
 	-rm *.anno.json
