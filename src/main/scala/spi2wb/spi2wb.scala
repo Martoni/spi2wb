@@ -24,8 +24,8 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
 
   assert(dwidth == 8 || dwidth == 16,
     "Only 8bits or 16bits data actually supported")
-  assert(awidth == 7,
-    "Only 7bits address actually supported")
+  assert(awidth <= 7,
+    "Maximum 7bits address actually supported")
 
   // Wishbone init
   val wbWeReg  = RegInit(false.B)
