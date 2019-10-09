@@ -14,6 +14,9 @@ class SpiSlave extends Bundle {
     val csn = Input(Bool())
 }
 
+/**
+ * Generate read/write wishbone access driven by spi protocol
+ */
 class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   val io = IO(new Bundle{
     // Wishbone master output
@@ -26,6 +29,8 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     "Only 8bits or 16bits data actually supported")
   assert(awidth <= 7,
     "Maximum 7bits address actually supported")
+
+  val spiAddressWith = 7
 
   // Wishbone init
   val wbWeReg  = RegInit(false.B)
@@ -89,7 +94,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       when(fallingedge(sclkReg)){
         addrReg := addrReg(awidth - 1, 0) ## io.spi.mosi
         count := count + 1.U
-        when(count >= awidth.U) {
+        when(count >= spiAddressWith.U) {
           when(wrReg){
             stateReg := sdatawrite
           }
@@ -110,7 +115,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
     is(sdataread){
       dataReg  := io.wbm.dat_i
       when(risingedge(sclkReg)){
-        misoReg := dataReg((1 + awidth + dwidth).U - count - 1.U)
+        misoReg := dataReg((1 + spiAddressWith + dwidth).U - count - 1.U)
         count := count + 1.U
       }
     }
@@ -119,7 +124,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
         dataReg := dataReg(dwidth-2,0) ## io.spi.mosi
         count := count + 1.U
       }
-      when(count >= (1 + awidth + dwidth).U){
+      when(count >= (1 + spiAddressWith + dwidth).U){
         stateReg := swbwrite
       }
     }
