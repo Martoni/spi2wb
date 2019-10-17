@@ -11,6 +11,8 @@ from cocotb.triggers import RisingEdge
 from cocotb.triggers import FallingEdge
 from cocotb.triggers import ClockCycles
 
+from cocomod.spi import *
+
 DATASIZE = os.environ['DATASIZE']
 
 class SlaveSpi(object):
@@ -27,13 +29,24 @@ class SlaveSpi(object):
             raise Exception("cpha = 0 not implemented yet")
         self._clock_thread = cocotb.fork(clock.start())
 
+        spi_sigs = SPISignals(miso=dut.miso,
+                              mosi=dut.mosi,
+                              sclk=dut.sclk,
+                              cs=dut.csn)
+
+        self.spi_config = SPIConfig(cpol=False,
+                                    cpha=True,
+                                    baudrate=(1, "us"),
+                                    csphase=False)
+
+        self.spimod = SPIModule(self.spi_config, spi_sigs, clock)
 
     @cocotb.coroutine
     def reset(self):
         self._dut.rstn <= 0
         short_per = Timer(100, units="ns")
         self._dut.rstn <= 0
-        self._dut.csn <= 1
+        self.spimod.set_cs(False)
         self._dut.mosi <= 0
         self._dut.sclk <= 0
         yield short_per
@@ -41,63 +54,44 @@ class SlaveSpi(object):
         yield short_per
 
     @cocotb.coroutine
-    def sendReceiveFrame(self, raddr, dataValue=0, datasize=8):
-        rvalue = 0
-        short_per = Timer(100, units="ns")
-        sclk_per = Timer(10, units="ns")
-        self._dut.csn <= 0
-        self._dut.sclk <= 0
-        yield short_per
-
-        # Writing addr
-        self._dut._log.info("Writing value 0x{:02X}".format(raddr))
-        for i in range(8):
-            self._dut.sclk <= 1
-            self._dut.mosi <= (raddr >> (7-i)) & 0x01
-            yield sclk_per
-            self._dut.sclk <= 0
-            yield sclk_per
-
-        yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
-
-        # reading/writing value
-        for i in range(datasize):
-            yield sclk_per
-            self._dut.sclk <= 1
-            self._dut.mosi <= (dataValue >> (datasize-i-1)) & 0x0001
-            yield sclk_per
-            self._dut.sclk <= 0
-            try:
-                rvalue += int(self._dut.miso.value) << (datasize-i-1)
-            except ValueError:
-                pass
-
-        self._dut.sclk <= 0
-        self._dut.csn <= 0
-        yield short_per
-        self._dut.csn <= 1
-        yield short_per
-        self._dut.sclk <= 0
-        yield short_per
-        raise ReturnValue(rvalue)
-
-    @cocotb.coroutine
     def writeByte(self, addr, value, datasize=8):
-        yield self.sendReceiveFrame(0x80|addr, value, datasize=datasize)
-
+        if not datasize in [8, 16]:
+            raise Exception("Size {} not supported".format(datasize))
+        sclk_per = Timer(self.spi_config.baudrate[0],
+                         units=self.spi_config.baudrate[1])
+        self.spimod.set_cs(True)
+        yield sclk_per
+        yield self.spimod.send(0x80|addr)
+        yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
+        yield self.spimod.send((value >> 8)&0x00FF)
+        yield self.spimod.send(value&0x00FF)
+        yield sclk_per
+        self.spimod.set_cs(False)
+        yield sclk_per
+ 
     @cocotb.coroutine
     def readByte(self, addr, datasize=8):
-        ret = yield self.sendReceiveFrame(0x7F&addr, datasize=datasize)
-        raise ReturnValue(ret)
+        if not datasize in [8, 16]:
+            raise Exception("Size {} not supported".format(datasize))
+        sclk_per = Timer(self.spi_config.baudrate[0],
+                         units=self.spi_config.baudrate[1])
+        self.spimod.set_cs(True)
+        yield sclk_per
+        yield self.spimod.send(addr)
+        yield sclk_per
+        yield self.spimod.send(0x00)  # let _monitor_recv getting value
+        if datasize == 16:
+            yield self.spimod.send(0x00)
+        yield sclk_per
+        self.spimod.set_cs(False)
+        ret = yield self.spimod.wait_for_recv(1) # waiting for receive value
+        yield sclk_per
+        try:
+            value_read = int(ret["miso"][-datasize:], 2)
+        except ValueError:
+            value_read = ret["miso"][-datasize:]
+        raise ReturnValue(value_read)
 
-    @cocotb.coroutine
-    def chipSelectLow(self, time=(10, "us")):
-        little_pause = Timer(10, "ns")
-        yield little_pause
-        self._dut.csn <= 0
-        yield Timer(time[0], units=time[1])
-        self._dut.csn <= 1
-        yield little_pause
 
 @cocotb.test()
 def test_one_data_frame(dut):
@@ -113,23 +107,18 @@ def test_one_data_frame(dut):
         testvalues = [(0x02, 0xca),
                       (0x10, 0xfe),
                       (0x00, 0x55),
-                      (0xFF, 0x12)]
+                      (0x7F, 0x12)]
     elif(datasize==16):
         #              addr  value
         testvalues = [(0x02, 0xcafe),
                       (0x10, 0xfeca),
                       (0x00, 0x5599),
-                      (0xFF, 0x1234)]
-    
-
-    yield slavespi.chipSelectLow((1, "us"))
+                      (0x7F, 0x1234)]
 
     # Writing values
     for addr, value in testvalues:
         dut._log.info("Write 0x{:02X} @ 0x{:02X}".format(value, addr))
         yield slavespi.writeByte(addr, value, datasize=datasize)
-
-    yield slavespi.chipSelectLow((1, "us"))
 
     # Reading back
     for addr, value in testvalues:
