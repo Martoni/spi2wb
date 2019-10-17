@@ -108,20 +108,25 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
       }
     }
     is(swbread){
-      wbStbReg := false.B
-      wbCycReg := false.B
-      stateReg := sdataread
+      when(io.wbm.ack_i){
+        wbStbReg := false.B
+        wbCycReg := false.B
+        dataReg  := io.wbm.dat_i
+        stateReg := sdataread
+      }
     }
     is(sdataread){
-      dataReg  := io.wbm.dat_i
       when(risingedge(sclkReg)){
-        misoReg := dataReg((1 + spiAddressWith + dwidth).U - count - 1.U)
+        misoReg := dataReg((spiAddressWith + dwidth).U - count)
         count := count + 1.U
+      }
+      when(count >= (2 + spiAddressWith + dwidth).U){
+        stateReg := sinit
       }
     }
     is(sdatawrite){
       when(fallingedge(sclkReg)){
-        dataReg := dataReg(dwidth-2,0) ## io.spi.mosi
+        dataReg := dataReg(dwidth-2, 0) ## io.spi.mosi
         count := count + 1.U
       }
       when(count >= (1 + spiAddressWith + dwidth).U){
@@ -132,7 +137,12 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
         wbWeReg  := true.B
         wbStbReg := true.B
         wbCycReg := true.B
-        stateReg := sinit
+        when(io.wbm.ack_i){
+          wbWeReg  := false.B
+          wbStbReg := false.B
+          wbCycReg := false.B
+          stateReg := sinit
+        }
     }
   }
   // reset state machine to sinit when csn rise
