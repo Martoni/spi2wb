@@ -215,20 +215,18 @@ class TopSpi2Wb (val dwidth: Int) extends RawModule {
 
     // wb memory connexion
     val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W))
-    val ackReg = Wire(Bool())
 
-    ackReg := false.B
+    slavespi.io.wbm.ack_i := false.B
     when(slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o) {
       when(slavespi.io.wbm.we_o){
         // Write memory
         wmem.write(slavespi.io.wbm.adr_o, slavespi.io.wbm.dat_o)
       }
-      ackReg := true.B
+      // read memory
     }
-    // read memory
+    slavespi.io.wbm.ack_i := RegNext(slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o) &&
+                                    (slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o)
     slavespi.io.wbm.dat_i := wmem.read(slavespi.io.wbm.adr_o)
-
-    slavespi.io.wbm.ack_i := ackReg
   }
 }
 
