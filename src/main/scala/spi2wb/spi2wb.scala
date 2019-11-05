@@ -63,7 +63,7 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
   val wrReg  = RegInit(false.B)
   val wbFlag = RegInit(false.B)
 
-  val count = RegInit("hffff".U(dwidth.W))
+  val count = RegInit(0.U(dwidth.W))
   //   000    001     010     011        100     101            110
   val sinit::swrreg::saddr::sdataread::swbread::sdatawrite::swbwrite::Nil=Enum(7)
   val stateReg = RegInit(sinit)
