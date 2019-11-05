@@ -6,6 +6,9 @@ hdl:
 test:
 	cd cocotb/; DATASIZE=$(DATASIZE) make
 
+scalatest:
+	$(SBT) "test:testOnly spi2wb.TestSpi2Wb"
+
 publishlocal:
 	$(SBT) publishLocal
 
