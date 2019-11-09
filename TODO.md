@@ -1,3 +1,3 @@
 # Todo list
 
-- Use cocomod-spi module for cocotb tests
+- Use scala tester2 to test it ?
