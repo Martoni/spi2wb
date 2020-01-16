@@ -11,7 +11,7 @@ from cocotb.triggers import RisingEdge
 from cocotb.triggers import FallingEdge
 from cocotb.triggers import ClockCycles
 
-from cocomod.spi import *
+from cocotbext.spi import *
 
 DATASIZE = os.environ['DATASIZE']
 

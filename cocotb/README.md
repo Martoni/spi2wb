@@ -11,16 +11,16 @@ $ python -m pip install cocotb
 
 Version 1.2 of cocotb as been used here, with python 3.7.
 
-## cocomod-spi
+## cocotbext-spi
 
-cocomod-spi is a cocotb extension used to test spi. It could be found in
+cocotbext-spi is a cocotb extension used to test spi. It could be found in
 following url :
-https://github.com/Martoni/cocomod-spi
+https://github.com/Martoni/cocotbext-spi
 
 To install it, it can be symply cloned and installed locally :
 ```
-$ git clone https://github.com/Martoni/cocomod-spi
-$ cd cocomod-spi
+$ git clone https://github.com/Martoni/cocotbext-spi
+$ cd cocotbext-spi
 $ python -m pip install -e .
 ```
 
