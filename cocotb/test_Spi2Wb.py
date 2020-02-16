@@ -24,9 +24,9 @@ class SlaveSpi(object):
         self._cpha = cpha
         self.datasize = datasize
         if cpol == 1:
-            raise Exception("cpol = 1 not implemented yet")
+            raise NotImplementedError("cpol = 1 not implemented yet")
         if cpha == 0:
-            raise Exception("cpha = 0 not implemented yet")
+            raise NotImplementedError("cpha = 0 not implemented yet")
         self._clock_thread = cocotb.fork(clock.start())
 
         spi_sigs = SPISignals(miso=dut.miso,
@@ -54,9 +54,9 @@ class SlaveSpi(object):
         yield short_per
 
     @cocotb.coroutine
-    def writeByte(self, addr, value, datasize=8):
+    def write_byte(self, addr, value, datasize=8):
         if not datasize in [8, 16]:
-            raise Exception("Size {} not supported".format(datasize))
+            raise NotImplementedError("Size {} not supported".format(datasize))
         sclk_per = Timer(self.spi_config.baudrate[0],
                          units=self.spi_config.baudrate[1])
         self.spimod.set_cs(True)
@@ -70,9 +70,9 @@ class SlaveSpi(object):
         yield sclk_per
  
     @cocotb.coroutine
-    def readByte(self, addr, datasize=8):
+    def read_byte(self, addr, datasize=8):
         if not datasize in [8, 16]:
-            raise Exception("Size {} not supported".format(datasize))
+            raise NotImplementedError("Size {} not supported".format(datasize))
         sclk_per = Timer(self.spi_config.baudrate[0],
                          units=self.spi_config.baudrate[1])
         self.spimod.set_cs(True)
@@ -102,13 +102,13 @@ def test_one_data_frame(dut):
     yield slavespi.reset()
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
-    if(datasize==8):
+    if datasize == 8:
         #              addr  value
         testvalues = [(0x02, 0xca),
                       (0x10, 0xfe),
                       (0x00, 0x55),
                       (0x7F, 0x12)]
-    elif(datasize==16):
+    elif datasize == 16:
         #              addr  value
         testvalues = [(0x02, 0xcafe),
                       (0x10, 0xfeca),
@@ -117,12 +117,12 @@ def test_one_data_frame(dut):
 
     # Writing values
     for addr, value in testvalues:
-        dut._log.info("Write 0x{:02X} @ 0x{:02X}".format(value, addr))
-        yield slavespi.writeByte(addr, value, datasize=datasize)
+        dut._log.info("Writing 0x{:02X} @ 0x{:02X}".format(value, addr))
+        yield slavespi.write_byte(addr, value, datasize=datasize)
 
     # Reading back
     for addr, value in testvalues:
-        vread = yield slavespi.readByte(addr, datasize=datasize)
+        vread = yield slavespi.read_byte(addr, datasize=datasize)
         dut._log.info("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
         if vread != value:
             raise TestError("Value read 0x{:02X} @0x{:02X} should be 0x{:02X}"
