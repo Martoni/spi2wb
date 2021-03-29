@@ -2,7 +2,7 @@ package spi2wb
 
 import chisel3._
 import chisel3.util._
-import chisel3.Driver
+import chisel3.stage.{ChiselStage, ChiselGeneratorAnnotation}
 
 import wbplumbing.WbMaster
 
@@ -247,9 +247,18 @@ object Spi2Wb8 extends App {
   println("* Generate 8Bits data vers *")
   println("****************************")
   println("Virgin module")
-  chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
+  // chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(8, 7)))
+  )
+
   println("Real world module with reset inverted")
-  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(8))
+  //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(8))
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(8)))
+  )
 }
 
 object Spi2Wb16 extends App {
@@ -257,7 +266,17 @@ object Spi2Wb16 extends App {
   println("* Generate 16Bits data vers*")
   println("****************************")
   println("Virgin module")
-  chisel3.Driver.execute(Array[String](), () => new Spi2Wb(16, 7))
+  //chisel3.Driver.execute(Array[String](), () => new Spi2Wb(16, 7))
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(16, 7)))
+  )
+
   println("Real world module with reset inverted")
-  chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
+  //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16)))
+  )
+
 }
