@@ -16,7 +16,8 @@ class SpiSlave extends Bundle {
 /**
  * Generate read/write wishbone access driven by spi protocol
  */
-class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
+class Spi2Wb (dwidth: Int, awidth: Int,
+              addr_ext: Boolean = false) extends Module {
   val io = IO(new Bundle{
     // Wishbone master output
     val wbm = new WbMaster(dwidth, awidth)
@@ -26,10 +27,12 @@ class Spi2Wb (dwidth: Int, awidth: Int) extends Module {
 
   assert(dwidth == 8 || dwidth == 16,
     "Only 8bits or 16bits data actually supported")
-  assert(awidth <= 7,
-    "Maximum 7bits address actually supported")
+  if(addr_ext)
+    assert(awidth <= 15, "Maximum 7bits address actually supported")
+  else
+    assert((awidth <= 7), "Maximum 7bits address actually supported")
 
-  val spiAddressWith = 7
+  val spiAddressWith = if(addr_ext) 15 else 7
 
   // Wishbone init
   val wbWeReg  = RegInit(false.B)
@@ -238,6 +241,8 @@ object Spi2Wb extends App {
   println("$DATASIZE=8 make")
   println("* For 16 bits:")
   println("$DATASIZE=16 make")
+  println("* For 16 bits with extended address:")
+  println("$DATASIZE=16 EXTADDR=1 make")
   println("")
   println("No verilog generated")
 }
@@ -277,6 +282,21 @@ object Spi2Wb16 extends App {
   (new chisel3.stage.ChiselStage).execute(
       Array("-X", "verilog"),
       Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16)))
+  )
+
+}
+
+
+object Spi2WbExt16 extends App {
+  println("*****************************************************")
+  println("* Generate 16Bits data with 15bits extended address *")
+  println("*****************************************************")
+  println("Virgin module")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=16,
+                                                     awidth=15,
+                                                     addr_ext=true)))
   )
 
 }

@@ -14,14 +14,24 @@ from cocotb.triggers import ClockCycles
 from cocotbext.spi import *
 
 DATASIZE = os.environ['DATASIZE']
+try:
+    EXTADDR = os.environ['EXTADDR']
+except KeyError:
+    EXTADDR = "0"
+
 
 class SlaveSpi(object):
     INTERFRAME = (100, "ns")
 
-    def __init__(self, dut, clock, cpol=0, cpha=1, datasize=DATASIZE):
+    def __init__(self, dut, clock, cpol=0, cpha=1,
+                 datasize=DATASIZE, addr_ext=EXTADDR):
         self._dut = dut
         self._cpol = cpol
         self._cpha = cpha
+        if addr_ext == "1":
+            self.addr_ext = True
+        else:
+            self.addr_ext = False
         self.datasize = datasize
         if cpol == 1:
             raise NotImplementedError("cpol = 1 not implemented yet")
@@ -61,7 +71,11 @@ class SlaveSpi(object):
                          units=self.spi_config.baudrate[1])
         self.spimod.set_cs(True)
         yield sclk_per
-        yield self.spimod.send(0x80|addr)
+        if not self.addr_ext:
+            yield self.spimod.send(0x80|addr)
+        else:
+            yield self.spimod.send(0x80|((addr >> 8)&0xFF))
+            yield self.spimod.send(addr&0xFF)
         yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
         yield self.spimod.send((value >> 8)&0x00FF)
         yield self.spimod.send(value&0x00FF)
@@ -77,7 +91,11 @@ class SlaveSpi(object):
                          units=self.spi_config.baudrate[1])
         self.spimod.set_cs(True)
         yield sclk_per
-        yield self.spimod.send(addr)
+        if not self.addr_ext:
+            yield self.spimod.send(addr)
+        else:
+            yield self.spimod.send((addr>>8)&0xFF)
+            yield self.spimod.send(addr&0xFF)
         yield sclk_per
         yield self.spimod.send(0x00)  # let _monitor_recv getting value
         if datasize == 16:
@@ -98,6 +116,8 @@ def test_one_data_frame(dut):
     dut._log.info("Launching slavespi test")
     slavespi = SlaveSpi(dut, Clock(dut.clock, 1, "ns"))
     datasize = int(slavespi.datasize)
+    if slavespi.addr_ext:
+        dut._log.info("Address is extended to 15bits")
     dut._log.info("Datasize is {}".format(datasize))
     yield slavespi.reset()
     sclk_per = Timer(10, units="ns")
