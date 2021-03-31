@@ -186,7 +186,7 @@ class BlinkLed extends Module {
 
 // Testing Spi2Wb with a memory connexion
 // and reset inverted
-class TopSpi2Wb (val dwidth: Int) extends RawModule {
+class TopSpi2Wb (val dwidth: Int, val extaddr: Boolean = false) extends RawModule {
   // Clock & Reset
   val clock = IO(Input(Clock()))
   val rstn  = IO(Input(Bool()))
@@ -200,7 +200,8 @@ class TopSpi2Wb (val dwidth: Int) extends RawModule {
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
 
-  val awidth = 7
+  
+  val awidth = if(extaddr) 15 else 7
 
   withClockAndReset(clock, !rstn) {
     // Blink connections
@@ -208,7 +209,7 @@ class TopSpi2Wb (val dwidth: Int) extends RawModule {
     blink := blinkModule.io.blink
 
     // SPI to wb connections
-    val slavespi = Module(new Spi2Wb(dwidth, awidth))
+    val slavespi = Module(new Spi2Wb(dwidth, awidth, extaddr))
     miso := slavespi.io.spi.miso
     // spi
     slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
@@ -276,14 +277,12 @@ object Spi2Wb16 extends App {
       Array("-X", "verilog"),
       Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(16, 7)))
   )
-
   println("Real world module with reset inverted")
   //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
   (new chisel3.stage.ChiselStage).execute(
       Array("-X", "verilog"),
       Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16)))
   )
-
 }
 
 
@@ -298,5 +297,9 @@ object Spi2WbExt16 extends App {
                                                      awidth=15,
                                                      addr_ext=true)))
   )
-
+  println("Real world module with reset inverted")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16, extaddr=true)))
+  )
 }
