@@ -47,6 +47,29 @@ MISO : ZZZZZZZZ DDDDDDDDDDDDDDDD
 - DDDDDDDDDDDDDD: 16 bits data
 - ZZZZZZZZZZZZZZ: Don't care signal
 
+### Extended address mode
+
+For 16bits data mode frames are following.
+
+- Write frame:
+```ascii
+MOSI: 1AAAAAAA AAAAAAAA DDDDDDDDDDDDDDDD
+MISO: ZZZZZZZZ ZZZZZZZZ ZZZZZZZZZZZZZZZZ
+```
+- Read frame
+```ascii
+MOSI : 0AAAAAAA AAAAAAAA ZZZZZZZZZZZZZZZZ
+MISO : ZZZZZZZZ ZZZZZZZZ DDDDDDDDDDDDDDDD
+```
+
+And with following :
+- 1/0: write/read bit
+- AAAAAAA: 7 bits address MSB
+- AAAAAAAA: 8 bits address LSB
+- DDDDDDDDDDDDDD: 16 bits data
+- ZZZZZZZZZZZZZZ: Don't care signal
+
+
 ## Install instructions
 
 This component use Chisel3 as HDL and Cocotb for testbench framework.
@@ -79,6 +102,13 @@ $ DATAZISE=8 make
 $ cd cocotb
 $ DATAZISE=16 make
 ```
+
+- For 16 bits datasize with extended address do:
+```shell
+$ cd cocotb
+$ DATAZISE=16 EXTADDR=1 make
+```
+
 
 To see waveform use gtkwave with following command :
 ```
