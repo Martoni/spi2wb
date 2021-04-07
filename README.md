@@ -4,8 +4,9 @@ Drive a Wishbone master bus with an SPI bus.
 ## Protocol
 
 The [SPI configuration](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Clock_polarity_and_phase) is following :
-- CPOL = 0
-- CPHA = 1
+- Mode b01 -> 
+  - CPOL = 0
+  - CPHA = 1
 - CS = active low
 
 An spi2wb frame is composed as following :
