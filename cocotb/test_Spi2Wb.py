@@ -3,8 +3,7 @@ import cocotb
 import logging
 from cocotb.triggers import Timer
 from cocotb.result import raise_error
-from cocotb.result import TestError
-from cocotb.result import ReturnValue
+from cocotb.result import TestError, TestFailure
 from cocotb.clock import Clock
 from cocotb.triggers import Timer
 from cocotb.triggers import RisingEdge
@@ -20,17 +19,20 @@ except KeyError:
     EXTADDR = "0"
 
 
-class SlaveSpi(object):
+class TestSpi2Wb(object):
     INTERFRAME = (100, "ns")
 
     def __init__(self, dut, clock, cpol=0, cpha=1,
                  datasize=DATASIZE, addr_ext=EXTADDR):
         self._dut = dut
+        self.log = dut._log
         self._cpol = cpol
         self._cpha = cpha
         if addr_ext == "1":
+            self.log.info("Extended spi address mode")
             self.addr_ext = True
         else:
+            self.log.info("Simple spi address mode")
             self.addr_ext = False
         self.datasize = datasize
         if cpol == 1:
@@ -51,75 +53,76 @@ class SlaveSpi(object):
 
         self.spimod = SPIModule(self.spi_config, spi_sigs, clock)
 
-    @cocotb.coroutine
-    def reset(self):
+    async def reset(self):
         self._dut.rstn <= 0
         short_per = Timer(100, units="ns")
         self._dut.rstn <= 0
         self.spimod.set_cs(False)
         self._dut.mosi <= 0
         self._dut.sclk <= 0
-        yield short_per
+        await short_per
         self._dut.rstn <= 1
-        yield short_per
+        await short_per
 
-    @cocotb.coroutine
-    def write_byte(self, addr, value, datasize=8):
+    async def write_byte(self, addr, value, datasize=8):
         if not datasize in [8, 16]:
             raise NotImplementedError("Size {} not supported".format(datasize))
         sclk_per = Timer(self.spi_config.baudrate[0],
                          units=self.spi_config.baudrate[1])
         self.spimod.set_cs(True)
-        yield sclk_per
+        await sclk_per
         if not self.addr_ext:
-            yield self.spimod.send(0x80|addr)
+            await self.spimod.send(0x80|addr)
         else:
-            yield self.spimod.send(0x80|((addr >> 8)&0xFF))
-            yield self.spimod.send(addr&0xFF)
-        yield Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
-        yield self.spimod.send((value >> 8)&0x00FF)
-        yield self.spimod.send(value&0x00FF)
-        yield sclk_per
-        self.spimod.set_cs(False)
-        yield sclk_per
- 
-    @cocotb.coroutine
-    def read_byte(self, addr, datasize=8):
-        if not datasize in [8, 16]:
-            raise NotImplementedError("Size {} not supported".format(datasize))
-        sclk_per = Timer(self.spi_config.baudrate[0],
-                         units=self.spi_config.baudrate[1])
-        self.spimod.set_cs(True)
-        yield sclk_per
-        if not self.addr_ext:
-            yield self.spimod.send(addr)
-        else:
-            yield self.spimod.send((addr>>8)&0xFF)
-            yield self.spimod.send(addr&0xFF)
-        yield sclk_per
-        yield self.spimod.send(0x00)  # let _monitor_recv getting value
+            await self.spimod.send(0x80|((addr >> 8)&0xFF))
+            await self.spimod.send(addr&0xFF)
+        await Timer(self.INTERFRAME[0], units=self.INTERFRAME[1])
         if datasize == 16:
-            yield self.spimod.send(0x00)
-        yield sclk_per
+            await self.spimod.send((value >> 8)&0x00FF)
+        await self.spimod.send(value&0x00FF)
+        await sclk_per
         self.spimod.set_cs(False)
-        ret = yield self.spimod.wait_for_recv(1) # waiting for receive value
-        yield sclk_per
+        await sclk_per
+ 
+    async def read_byte(self, addr, datasize=8):
+        if not datasize in [8, 16]:
+            raise NotImplementedError("Size {} not supported".format(datasize))
+        sclk_per = Timer(self.spi_config.baudrate[0],
+                         units=self.spi_config.baudrate[1])
+        self.spimod.set_cs(True)
+        await sclk_per
+        if not self.addr_ext:
+            await self.spimod.send(addr)
+        else:
+            await self.spimod.send((addr>>8)&0xFF)
+            await self.spimod.send(addr&0xFF)
+        await sclk_per
+        await self.spimod.send(0x00)  # let _monitor_recv getting value
+        if datasize == 16:
+            await self.spimod.send(0x00)
+        await sclk_per
+        self.spimod.set_cs(False)
+        ret = await self.spimod.wait_for_recv(1) # waiting for receive value
+        await sclk_per
         try:
             value_read = int(ret["miso"][-datasize:], 2)
         except ValueError:
             value_read = ret["miso"][-datasize:]
-        raise ReturnValue(value_read)
+
+        return value_read
 
 
 @cocotb.test()
-def test_one_data_frame(dut):
-    dut._log.info("Launching slavespi test")
-    slavespi = SlaveSpi(dut, Clock(dut.clock, 1, "ns"))
-    datasize = int(slavespi.datasize)
-    if slavespi.addr_ext:
+async def test_one_data_frame(dut):
+    test_success = True
+    test_msg = []
+    dut._log.info("Launching tspi2wb test")
+    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
+    datasize = int(tspi2wb.datasize)
+    if tspi2wb.addr_ext:
         dut._log.info("Address is extended to 15bits")
     dut._log.info("Datasize is {}".format(datasize))
-    yield slavespi.reset()
+    await tspi2wb.reset()
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
     if datasize == 8:
@@ -138,12 +141,20 @@ def test_one_data_frame(dut):
     # Writing values
     for addr, value in testvalues:
         dut._log.info("Writing 0x{:02X} @ 0x{:02X}".format(value, addr))
-        yield slavespi.write_byte(addr, value, datasize=datasize)
+        await tspi2wb.write_byte(addr, value, datasize=datasize)
 
     # Reading back
     for addr, value in testvalues:
-        vread = yield slavespi.read_byte(addr, datasize=datasize)
-        dut._log.info("Read byte 0x{:02X} @ 0x{:02X}".format(vread, addr))
-        if vread != value:
-            raise TestError("Value read 0x{:02X} @0x{:02X} should be 0x{:02X}"
+        vread = await tspi2wb.read_byte(addr, datasize=datasize)
+        dut._log.info("Read byte 0x{:x} @ 0x{:02X} (should be 0x{:02X})"
+                .format(vread, addr, value))
+        if int(vread) != value:
+            msg = ("Value read 0x{:x} @0x{:02X} should be 0x{:02X}"
                     .format(vread, addr, value))
+            dut._log.error(msg)
+            test_msg.append(msg)
+            test_success = False
+
+    if not test_success:
+        raise TestFailure("\n".join(test_msg))
+
