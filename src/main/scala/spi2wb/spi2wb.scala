@@ -267,6 +267,24 @@ object Spi2Wb8 extends App {
   )
 }
 
+object Spi2WbExt8 extends App {
+  println("*****************************************************")
+  println("* Generate 8Bits data with 15bits extended address *")
+  println("*****************************************************")
+  println("Virgin module")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=8,
+                                                     awidth=7,
+                                                     addr_ext=true)))
+  )
+  println("Real world module with reset inverted")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(8, extaddr=true)))
+  )
+}
+
 object Spi2Wb16 extends App {
   println("****************************")
   println("* Generate 16Bits data vers*")
