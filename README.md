@@ -4,7 +4,7 @@ Drive a Wishbone master bus with an SPI bus.
 ## Protocol
 
 The [SPI configuration](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Clock_polarity_and_phase) is following :
-- Mode b01 -> 
+- Mode b01 ->
   - CPOL = 0
   - CPHA = 1
 - CS = active low
@@ -70,6 +70,40 @@ And with following :
 - DDDDDDDDDDDDDD: 16 bits data
 - ZZZZZZZZZZZZZZ: Don't care signal
 
+### Burst mode
+
+To use burst mode, spi2wb must be synthetised with the option.
+Then for 16bits data mode and extended address mode it frame are following :
+
+- Write burst frame:
+```ascii
+# Simple mode:
+MOSI: 10AAAAAA AAAAAAAA DDDDDDDDDDDDDDDD
+MISO: ZZZZZZZZ ZZZZZZZZ ZZZZZZZZZZZZZZZZ
+# Burst mode:
+MOSI: 10AAAAAA AAAAAAAA DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD ...
+MISO: ZZZZZZZZ ZZZZZZZZ ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ Z.Z
+```
+- Read frame
+```ascii
+# Simple mode:
+MOSI : 00AAAAAA AAAAAAAA ZZZZZZZZZZZZZZZZ
+MISO : ZZZZZZZZ ZZZZZZZZ DDDDDDDDDDDDDDDD
+# Burst mode:
+MOSI : 01AAAAAA AAAAAAAA ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ ...
+MISO : ZZZZZZZZ ZZZZZZZZ DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD Z.Z
+```
+
+With following :
+- First 1/0: write/read bit
+- Second 1/0: burst/simple
+- AAAAAAA: 6 bits address MSB
+- AAAAAAAA: 8 bits address LSB
+- DDDDDDDDDDDDDD: 16 bits data
+- ZZZZZZZZZZZZZZ: Don't care signal
+
+In burst mode, wishbone word address will be increased by 1 each word
+read/write.
 
 ## Install instructions
 
