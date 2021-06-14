@@ -72,7 +72,7 @@ And with following :
 
 ### Burst mode
 
-To use burst mode, spi2wb must be synthetised with the option.
+To use burst mode, spi2wb must be synthetised with the option `aburst=true`.
 Then for 16bits data mode and extended address mode it frame are following :
 
 - Write burst frame:
@@ -81,7 +81,7 @@ Then for 16bits data mode and extended address mode it frame are following :
 MOSI: 10AAAAAA AAAAAAAA DDDDDDDDDDDDDDDD
 MISO: ZZZZZZZZ ZZZZZZZZ ZZZZZZZZZZZZZZZZ
 # Burst mode:
-MOSI: 10AAAAAA AAAAAAAA DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD ...
+MOSI: 11AAAAAA AAAAAAAA DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD DDDDDDDDDDDDDDDD ...
 MISO: ZZZZZZZZ ZZZZZZZZ ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ ZZZZZZZZZZZZZZZZ Z.Z
 ```
 - Read frame
@@ -144,6 +144,11 @@ $ cd cocotb
 $ DATAZISE=16 EXTADDR=1 make
 ```
 
+- For 16 bits datasize with extended address and burst do:
+```shell
+$ cd cocotb
+$ DATAZISE=16 EXTADDR=1 BURST=1 make
+```
 
 To see waveform use gtkwave with following command :
 ```
@@ -158,12 +163,17 @@ To generate verilog synthesizable component do :
 $ make
 ```
 
-This will generate a verilog top components named ```TopSpi2Wb.v```. This component include a blinker to unsure that the bitstream is well downloaded and fpga started.
+This will generate a verilog top components named ```TopSpi2Wb.v```. This
+component include a blinker to unsure that the bitstream is well downloaded and
+fpga started.
 
 ### Testing with busPirate
 
-The design has been tested with a [busPirate](https://sandboxelectronics.com/?product=bus-pirate-v4-universal-interface-gadget).
-A python script is available in hwtest/ directory to test the component with buspirate :
+The design has been tested with a
+[busPirate](https://sandboxelectronics.com/?product=bus-pirate-v4-universal-interface-gadget).
+A python script is available in hwtest/ directory to test the component with
+buspirate :
+
 - For 8 bits read/write:
 ```shell
 $  python3 test_bus_pirate.py -d8

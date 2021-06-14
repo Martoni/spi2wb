@@ -17,6 +17,7 @@ class SpiSlave extends Bundle {
  * Generate read/write wishbone access driven by spi protocol
  */
 class Spi2Wb (dwidth: Int, awidth: Int,
+              aburst: Boolean = false,
               addr_ext: Boolean = false) extends Module {
   val io = IO(new Bundle{
     // Wishbone master output
@@ -25,14 +26,45 @@ class Spi2Wb (dwidth: Int, awidth: Int,
     val spi = new SpiSlave()
   })
 
-  assert(dwidth == 8 || dwidth == 16,
-    "Only 8bits or 16bits data actually supported")
-  if(addr_ext)
-    assert(awidth <= 15, "Maximum 7bits address actually supported")
-  else
-    assert((awidth <= 7), "Maximum 7bits address actually supported")
+  println("Generate SPI for :")
+  println(" - data size : " + dwidth)
+  println(" - Addr size : " + awidth)
+  println(" - ext addr : " + addr_ext)
+  println(" - burst : " + aburst)
 
-  val spiAddressWith = if(addr_ext) 15 else 7
+  assert(dwidth == 8 || dwidth == 16,
+    "Only 8bits or 16bits data supported")
+
+  if(addr_ext){
+    assert(awidth <= 15, "Maximum 15 bits address actually supported")
+    if(aburst) {
+      assert(awidth <= 14, "Maximum 14 bits address actually supported (burst)")
+    }
+  } else{
+    assert((awidth <= 7), "Maximum 7 bits address actually supported")
+    if(aburst) {
+      assert((awidth <= 6), "Maximum 6 bits address actually supported (burst)")
+    }
+  }
+
+  val spiAddressWith  = (addr_ext, aburst) match {
+          case (true, false) => {
+              assert(awidth <= 15,
+                 "Maximum 15 bits address actually supported")
+                 15}
+          case (true, true) => {
+              assert(awidth <= 14,
+                "Maximum 14 bits address actually supported (burst)")
+                14}
+          case (false, false) => {
+              assert(awidth <= 7,
+                "Maximum 7 bits address actually supported")
+                7}
+          case (false, true) => {
+              assert(awidth <= 6,
+                "Maximum 6 bits address actually supported (burst)")
+              6}
+  }
 
   // Wishbone init
   val wbWeReg  = RegInit(false.B)
@@ -186,7 +218,9 @@ class BlinkLed extends Module {
 
 // Testing Spi2Wb with a memory connexion
 // and reset inverted
-class TopSpi2Wb (val dwidth: Int, val extaddr: Boolean = false) extends RawModule {
+class TopSpi2Wb (val dwidth: Int,
+                 val aburst: Boolean = false,
+                 val extaddr: Boolean = false) extends RawModule {
   // Clock & Reset
   val clock = IO(Input(Clock()))
   val rstn  = IO(Input(Bool()))
@@ -201,7 +235,12 @@ class TopSpi2Wb (val dwidth: Int, val extaddr: Boolean = false) extends RawModul
   val csn  = IO(Input(Bool()))
 
   
-  val awidth = if(extaddr) 15 else 7
+  val awidth = (extaddr, aburst) match {
+          case (true, false) => 15
+          case (true, true) => 14
+          case (false, false) => 7
+          case (false, true) => 6}
+
 
   withClockAndReset(clock, !rstn) {
     // Blink connections
@@ -209,7 +248,10 @@ class TopSpi2Wb (val dwidth: Int, val extaddr: Boolean = false) extends RawModul
     blink := blinkModule.io.blink
 
     // SPI to wb connections
-    val slavespi = Module(new Spi2Wb(dwidth, awidth, extaddr))
+    val slavespi = Module(new Spi2Wb(dwidth=dwidth,
+                                     awidth=awidth,
+                                     aburst=aburst,
+                                     addr_ext=extaddr))
     miso := slavespi.io.spi.miso
     // spi
     slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
@@ -318,6 +360,28 @@ object Spi2WbExt16 extends App {
   println("Real world module with reset inverted")
   (new chisel3.stage.ChiselStage).execute(
       Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16, extaddr=true)))
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(dwidth=16, extaddr=true)))
+  )
+}
+
+object Spi2WbExt16Burst extends App {
+  println("*****************************************************")
+  println("* Generate 16Bits data with 14bits extended address *")
+  println("* And Burst mode activated                          *")
+  println("*****************************************************")
+  println("Virgin module")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=16,
+                                                     awidth=14,
+                                                     aburst=true,
+                                                     addr_ext=true)))
+  )
+  println("Real world module with reset inverted")
+  (new chisel3.stage.ChiselStage).execute(
+      Array("-X", "verilog"),
+      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(dwidth=16,
+                                                        aburst=true,
+                                                        extaddr=true)))
   )
 }
