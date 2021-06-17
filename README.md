@@ -130,24 +130,24 @@ To simulate the module go to cocotb/ directory:
 - For 8 bits datasize do:
 ```shell
 $ cd cocotb
-$ DATAZISE=8 make
+$ DATASIZE=8 make
 ```
 - For 16 bits datasize do:
 ```shell
 $ cd cocotb
-$ DATAZISE=16 make
+$ DATASIZE=16 make
 ```
 
 - For 16 bits datasize with extended address do:
 ```shell
 $ cd cocotb
-$ DATAZISE=16 EXTADDR=1 make
+$ DATASIZE=16 EXTADDR=1 make
 ```
 
 - For 16 bits datasize with extended address and burst do:
 ```shell
 $ cd cocotb
-$ DATAZISE=16 EXTADDR=1 BURST=1 make
+$ DATASIZE=16 EXTADDR=1 BURST=1 make
 ```
 
 To see waveform use gtkwave with following command :
