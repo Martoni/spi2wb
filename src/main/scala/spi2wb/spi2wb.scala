@@ -83,12 +83,12 @@ class Spi2Wb (dwidth: Int, awidth: Int,
   val dataReg  = RegInit("h00".U(dwidth.W))
   val addrReg  = RegInit("h00".U(awidth.W))
 
-  val wrReg  = RegInit(false.B)
-  val wbFlag = RegInit(false.B)
+  val wrReg  = RegInit(false.B)  // Read flag
+  val wbFlag = RegInit(false.B)  // burst flag
 
   val count = RegInit(0.U(dwidth.W))
-  //   000    001     010     011        100     101            110
-  val sinit::swrreg::saddr::sdataread::swbread::sdatawrite::swbwrite::Nil=Enum(7)
+  //   000    001     010     011        100     101         110     111
+  val sinit::swrreg::swbreg::saddr::sdataread::swbread::sdatawrite::swbwrite::Nil=Enum(8)
   val stateReg = RegInit(sinit)
 
   switch(stateReg) {
@@ -109,6 +109,15 @@ class Spi2Wb (dwidth: Int, awidth: Int,
       when(fallingedge(sclkReg)){
         wrReg := io.spi.mosi
         count := 1.U
+        if(aburst) 
+          stateReg := swbreg
+        else
+          stateReg := saddr
+      }
+    }
+    is(swbreg){
+      when(fallingedge(sclkReg)){
+        wbFlag := io.spi.mosi
         stateReg := saddr
       }
     }
@@ -132,7 +141,8 @@ class Spi2Wb (dwidth: Int, awidth: Int,
     is(swbread){
       when(io.wbm.ack_i){
         wbStbReg := false.B
-        wbCycReg := false.B
+        if(!aburst)
+          wbCycReg := false.B
         dataReg  := io.wbm.dat_i
         stateReg := sdataread
       }
@@ -142,8 +152,20 @@ class Spi2Wb (dwidth: Int, awidth: Int,
         misoReg := dataReg((spiAddressWith + dwidth).U - count)
         count := count + 1.U
       }
+      if (!aburst)
       when(count >= (2 + spiAddressWith + dwidth).U){
-        stateReg := sinit
+          stateReg := sinit
+      }
+      else{
+        when(count >= (1 + spiAddressWith + dwidth).U){
+          when(fallingedge(sclkReg)){
+            addrReg := addrReg + 1.U
+            count := (spiAddressWith + 1).U
+            wbWeReg  := false.B
+            wbStbReg := true.B
+            stateReg := swbread
+          }
+        }
       }
     }
     is(sdatawrite){
@@ -167,6 +189,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
         }
     }
   }
+
   // reset state machine to sinit when csn rise
   // even if count is not right
   when(risingedge(csnReg)){

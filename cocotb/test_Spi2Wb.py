@@ -136,8 +136,9 @@ class TestSpi2Wb(object):
             raise NotImplementedError("should be at least 2 bytes lenght burst")
         sclk_per = Timer(self.spi_config.baudrate[0],
                          units=self.spi_config.baudrate[1])
-
+        
         self.spimod.set_cs(True)
+        ret_values = []
 
         # sending address
         await sclk_per
@@ -156,12 +157,15 @@ class TestSpi2Wb(object):
         self.spimod.set_cs(False)
         ret = await self.spimod.wait_for_recv(1) # waiting for receive value
         await sclk_per
+        print(f"debug {ret}")
         try:
             value_read = int(ret["miso"][-datasize:], 2)
         except ValueError:
             value_read = ret["miso"][-datasize:]
+        for n in range(nbByte):
+            ret_values.append(ret["miso"][(-datasize*(n+1)):(len(ret["miso"])-datasize*n)])
 
-        return value_read
+        return ret_values 
 
 @cocotb.test(skip=not Tburst_read)
 async def test_burst_read(dut):
@@ -177,7 +181,21 @@ async def test_burst_read(dut):
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
 
+    testvalues = [(addr, (0xaa<<8 | addr)) for addr in range(0x10,0x16)]
 
+    # fill memory with simple writes
+    for addr, value in testvalues:
+        dut._log.info("Writing 0x{:02X} @ 0x{:02X}".format(value, addr))
+        await tspi2wb.write_byte(addr, value, datasize=datasize)
+
+    await Timer(50, units="us")
+
+    # read burst
+    readret = await tspi2wb.burst_read(0x10, datasize=16, nbByte=5)
+    dut._log.info(f"debug {readret}")
+
+    for value in readret:
+        print(f" {value} -> 0x{hex(int(value, 2))}")
 
     if not test_success:
         raise TestFailure("\n".join(test_msg))
