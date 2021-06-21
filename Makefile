@@ -6,8 +6,14 @@ else
 	EXT=
 endif
 
+ifeq ($(BURST), 1)
+	BURST=Burst
+else
+	BURST=
+endif
+
 hdl:
-	$(SBT) "runMain spi2wb.Spi2Wb$(EXT)$(DATASIZE)"
+	$(SBT) "runMain spi2wb.Spi2Wb$(EXT)$(DATASIZE)$(BURST)"
 
 test:
 	cd cocotb/; DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) make

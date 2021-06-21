@@ -29,8 +29,16 @@ $ python -m pip install -e .
 Parameter should be passed to makefile for the datasize used :
 
 ```
-# 16 bits data
-$ DATASIZE=16 make
-# 8 bits data
-$ DATASIZE=8 make
+# 16 bits data extended address and burst mode
+$ DATASIZE=16 EXTADDR=1 BURST=1 make
+# 8 bits data simple address and no burst
+$ DATASIZE=8 EXTADDR=0 BURST=0 make
+```
+
+# Cleaning
+
+To be sure that all files are reconstructed do :
+
+```
+$ make mrproper
 ```

@@ -35,18 +35,6 @@ class Spi2Wb (dwidth: Int, awidth: Int,
   assert(dwidth == 8 || dwidth == 16,
     "Only 8bits or 16bits data supported")
 
-  if(addr_ext){
-    assert(awidth <= 15, "Maximum 15 bits address actually supported")
-    if(aburst) {
-      assert(awidth <= 14, "Maximum 14 bits address actually supported (burst)")
-    }
-  } else{
-    assert((awidth <= 7), "Maximum 7 bits address actually supported")
-    if(aburst) {
-      assert((awidth <= 6), "Maximum 6 bits address actually supported (burst)")
-    }
-  }
-
   val spiAddressWith  = (addr_ext, aburst) match {
           case (true, false) => {
               assert(awidth <= 15,
@@ -233,14 +221,12 @@ class TopSpi2Wb (val dwidth: Int,
   val miso = IO(Output(Bool()))
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
-
   
   val awidth = (extaddr, aburst) match {
-          case (true, false) => 15
-          case (true, true) => 14
-          case (false, false) => 7
-          case (false, true) => 6}
-
+          case (true,    false) => 15
+          case (true,    true) => 14
+          case (false,   false) => 7
+          case (false,   true) => 6}
 
   withClockAndReset(clock, !rstn) {
     // Blink connections

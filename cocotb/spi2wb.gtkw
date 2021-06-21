@@ -1,50 +1,44 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Wed Mar 31 14:41:08 2021
+[*] Thu Jun 17 11:14:08 2021
 [*]
-[dumpfile] "(null)"
+[dumpfile] "/opt/spi2wb/cocotb/TopSpi2Wb.vcd"
+[dumpfile_mtime] "Thu Jun 17 11:13:51 2021"
+[dumpfile_size] 5740
 [savefile] "/opt/spi2wb/cocotb/spi2wb.gtkw"
 [timestart] 0
 [size] 1920 1029
 [pos] -1 -1
-*-25.580896 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-26.110188 79300000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TopSpi2Wb.
 [sst_width] 214
-[signals_width] 238
+[signals_width] 174
 [sst_expanded] 1
-[sst_vpaned_height] 315
+[sst_vpaned_height] 306
 @28
-TopSpi2Wb.slavespi_clock
-TopSpi2Wb.slavespi_reset
+TopSpi2Wb.clock
+@29
+TopSpi2Wb.rstn
 @200
 -spi
 @28
-TopSpi2Wb.slavespi_io_spi_csn
-TopSpi2Wb.slavespi_io_spi_csn_r
-TopSpi2Wb.slavespi_io_spi_csn_r_1
-TopSpi2Wb.slavespi_io_spi_miso
-TopSpi2Wb.slavespi_io_spi_mosi
-TopSpi2Wb.slavespi_io_spi_mosi_r
-TopSpi2Wb.slavespi_io_spi_mosi_r_1
-TopSpi2Wb.slavespi_io_spi_sclk
-TopSpi2Wb.slavespi_io_spi_sclk_r
-TopSpi2Wb.slavespi_io_spi_sclk_r_1
+TopSpi2Wb.slavespi.io_spi_csn
+TopSpi2Wb.slavespi.io_spi_miso
+TopSpi2Wb.slavespi.io_spi_mosi
+TopSpi2Wb.slavespi.io_spi_sclk
 @200
--Wishbone
+-wb
 @28
-TopSpi2Wb.slavespi_io_wbm_ack_i
-TopSpi2Wb.slavespi_io_wbm_ack_i_REG
+TopSpi2Wb.slavespi.io_wbm_ack_i
 @22
-TopSpi2Wb.slavespi_io_wbm_adr_o[6:0]
+TopSpi2Wb.slavespi.io_wbm_adr_o[13:0]
 @28
-TopSpi2Wb.slavespi_io_wbm_cyc_o
+TopSpi2Wb.slavespi.io_wbm_cyc_o
 @22
-TopSpi2Wb.slavespi_io_wbm_dat_i[7:0]
-TopSpi2Wb.slavespi_io_wbm_dat_o[7:0]
+TopSpi2Wb.slavespi.io_wbm_dat_i[15:0]
+TopSpi2Wb.slavespi.io_wbm_dat_o[15:0]
 @28
-TopSpi2Wb.slavespi_io_wbm_stb_o
-TopSpi2Wb.slavespi_io_wbm_we_o
-@200
--memory
+TopSpi2Wb.slavespi.io_wbm_stb_o
+TopSpi2Wb.slavespi.io_wbm_we_o
 [pattern_trace] 1
 [pattern_trace] 0

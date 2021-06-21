@@ -13,17 +13,27 @@ from cocotb.triggers import ClockCycles
 from cocotbext.spi import *
 
 DATASIZE = os.environ['DATASIZE']
+
+Tburst_read = True
+Tone_data_frame = True
+
 try:
     EXTADDR = os.environ['EXTADDR']
 except KeyError:
     EXTADDR = "0"
+try:
+    BURST = os.environ['BURST']
+    Tone_data_frame = False
+except KeyError:
+    BURST = "0"
 
 
 class TestSpi2Wb(object):
     INTERFRAME = (100, "ns")
 
     def __init__(self, dut, clock, cpol=0, cpha=1,
-                 datasize=DATASIZE, addr_ext=EXTADDR):
+                 datasize=DATASIZE, addr_ext=EXTADDR,
+                 burst=BURST):
         self._dut = dut
         self.log = dut._log
         self._cpol = cpol
@@ -34,6 +44,12 @@ class TestSpi2Wb(object):
         else:
             self.log.info("Simple spi address mode")
             self.addr_ext = False
+        if burst == "1":
+            self.log.info("Burst enabled mode")
+            self.burst = True
+        else:
+            self.burst = False
+
         self.datasize = datasize
         if cpol == 1:
             raise NotImplementedError("cpol = 1 not implemented yet")
@@ -85,22 +101,58 @@ class TestSpi2Wb(object):
         await sclk_per
  
     async def read_byte(self, addr, datasize=8):
+       if not datasize in [8, 16]:
+            raise NotImplementedError("Size {} not supported".format(datasize))
+       sclk_per = Timer(self.spi_config.baudrate[0],
+                        units=self.spi_config.baudrate[1])
+       self.spimod.set_cs(True)
+       await sclk_per
+       if not self.addr_ext:
+           await self.spimod.send(0x7F&addr)
+       else:
+           await self.spimod.send((addr>>8)&0x7F)
+           await self.spimod.send(addr&0xFF)
+       await sclk_per
+       await self.spimod.send(0x00)  # let _monitor_recv getting value
+       if datasize == 16:
+           await self.spimod.send(0x00)
+       await sclk_per
+       self.spimod.set_cs(False)
+       ret = await self.spimod.wait_for_recv(1) # waiting for receive value
+       await sclk_per
+       try:
+           value_read = int(ret["miso"][-datasize:], 2)
+       except ValueError:
+           value_read = ret["miso"][-datasize:]
+
+       return value_read
+
+    async def burst_read(self, addr, datasize=8, nbByte=10):
+        if BURST != "1":
+            raise NotImplementedError("BURST synthesis option not set")
         if not datasize in [8, 16]:
             raise NotImplementedError("Size {} not supported".format(datasize))
+        if nbByte < 2:
+            raise NotImplementedError("should be at least 2 bytes lenght burst")
         sclk_per = Timer(self.spi_config.baudrate[0],
                          units=self.spi_config.baudrate[1])
+
         self.spimod.set_cs(True)
+
+        # sending address
         await sclk_per
         if not self.addr_ext:
-            await self.spimod.send(addr)
+            await self.spimod.send((0x3F&addr)|0x40)
         else:
-            await self.spimod.send((addr>>8)&0xFF)
+            await self.spimod.send(((addr>>8)&0x3F)|0x40)
             await self.spimod.send(addr&0xFF)
         await sclk_per
-        await self.spimod.send(0x00)  # let _monitor_recv getting value
-        if datasize == 16:
-            await self.spimod.send(0x00)
-        await sclk_per
+        for vbyte in range(nbByte):
+            await self.spimod.send(0x00)  # let _monitor_recv getting value
+            if datasize == 16:
+                await self.spimod.send(0x00)
+            await sclk_per
+
         self.spimod.set_cs(False)
         ret = await self.spimod.wait_for_recv(1) # waiting for receive value
         await sclk_per
@@ -111,8 +163,26 @@ class TestSpi2Wb(object):
 
         return value_read
 
+@cocotb.test(skip=not Tburst_read)
+async def test_burst_read(dut):
+    test_success =True
 
-@cocotb.test()
+    dut._log.info("Launching tspi2wb burst test")
+    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
+    datasize = int(tspi2wb.datasize)
+    if tspi2wb.addr_ext:
+        dut._log.info("Address is extended to 14bits")
+    dut._log.info("Datasize is {}".format(datasize))
+    await tspi2wb.reset()
+    sclk_per = Timer(10, units="ns")
+    short_per = Timer(100, units="ns")
+
+
+
+    if not test_success:
+        raise TestFailure("\n".join(test_msg))
+
+@cocotb.test(skip=not Tone_data_frame)
 async def test_one_data_frame(dut):
     test_success = True
     test_msg = []
@@ -157,4 +227,3 @@ async def test_one_data_frame(dut):
 
     if not test_success:
         raise TestFailure("\n".join(test_msg))
-
