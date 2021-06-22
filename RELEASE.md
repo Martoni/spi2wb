@@ -1,4 +1,7 @@
 
+## v1.5.0
+
+- adding burst read and write
 
 ## v1.4
 

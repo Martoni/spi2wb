@@ -1,5 +1,5 @@
 scalaVersion     := "2.12.12"
-version          := "1.3.1"
+version          := "1.5.0"
 organization     := "org.armadeus"
 
 lazy val root = (project in file("."))
