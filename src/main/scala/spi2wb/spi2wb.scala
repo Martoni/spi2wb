@@ -184,8 +184,15 @@ class Spi2Wb (dwidth: Int, awidth: Int,
         when(io.wbm.ack_i){
           wbWeReg  := false.B
           wbStbReg := false.B
-          wbCycReg := false.B
-          stateReg := sinit
+          if(!aburst){
+            wbCycReg := false.B
+            stateReg := sinit
+          }else{
+            addrReg := addrReg + 1.U
+            count := (spiAddressWith + 1).U
+            dataReg := 0.U
+            stateReg := sdatawrite
+          }
         }
     }
   }

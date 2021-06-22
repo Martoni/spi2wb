@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Thu Jun 17 11:14:08 2021
+[*] Tue Jun 22 09:39:24 2021
 [*]
 [dumpfile] "/opt/spi2wb/cocotb/TopSpi2Wb.vcd"
-[dumpfile_mtime] "Thu Jun 17 11:13:51 2021"
-[dumpfile_size] 5740
+[dumpfile_mtime] "Tue Jun 22 09:37:05 2021"
+[dumpfile_size] 42640705
 [savefile] "/opt/spi2wb/cocotb/spi2wb.gtkw"
 [timestart] 0
 [size] 1920 1029
 [pos] -1 -1
-*-26.110188 79300000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-26.031265 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TopSpi2Wb.
 [sst_width] 214
 [signals_width] 174
@@ -17,7 +17,6 @@
 [sst_vpaned_height] 306
 @28
 TopSpi2Wb.clock
-@29
 TopSpi2Wb.rstn
 @200
 -spi
@@ -26,6 +25,10 @@ TopSpi2Wb.slavespi.io_spi_csn
 TopSpi2Wb.slavespi.io_spi_miso
 TopSpi2Wb.slavespi.io_spi_mosi
 TopSpi2Wb.slavespi.io_spi_sclk
+@201
+-internal
+@28
+TopSpi2Wb.slavespi.stateReg[2:0]
 @200
 -wb
 @28

@@ -127,6 +127,35 @@ class TestSpi2Wb(object):
 
        return value_read
 
+    async def burst_write(self, addr, lvalues=[], datasize=8):
+        if BURST != "1":
+            raise NotImplementedError("BURST synthesis option not set")
+        if not datasize in [8, 16]:
+            raise NotImplementedError("Size {} not supported".format(datasize))
+        if len(lvalues) < 2:
+            raise NotImplementedError("should be at least 2 bytes lenght burst")
+        sclk_per = Timer(self.spi_config.baudrate[0],
+                         units=self.spi_config.baudrate[1])
+
+        self.spimod.set_cs(True)
+        # sending address
+        await sclk_per
+        if not self.addr_ext:
+            await self.spimod.send((0x3F&addr)|0xC0)
+        else:
+            await self.spimod.send(((addr>>8)&0x3F)|0xC0)
+            await self.spimod.send(addr&0xFF)
+
+        await sclk_per
+        for value in lvalues:
+            if datasize == 16:
+                await self.spimod.send((value>>8)&0x00FF)
+            await self.spimod.send(value&0x00FF)
+            await sclk_per
+
+        self.spimod.set_cs(False)
+        await sclk_per
+
     async def burst_read(self, addr, datasize=8, nbByte=10):
         if BURST != "1":
             raise NotImplementedError("BURST synthesis option not set")
@@ -165,7 +194,8 @@ class TestSpi2Wb(object):
         for n in range(nbByte):
             ret_values.append(ret["miso"][(-datasize*(n+1)):(len(ret["miso"])-datasize*n)])
 
-        return ret_values 
+        ret_values.reverse()
+        return ret_values
 
 @cocotb.test(skip=not Tburst_read)
 async def test_burst_read(dut):
@@ -181,21 +211,26 @@ async def test_burst_read(dut):
     sclk_per = Timer(10, units="ns")
     short_per = Timer(100, units="ns")
 
-    testvalues = [(addr, (0xaa<<8 | addr)) for addr in range(0x10,0x16)]
+    addr = 0x10
+    testvalues = [(addr, (0xaa<<8 | addr)) for addr in range(addr,addr + 6)]
+    writevalues = [value[-1] for value in testvalues]
 
-    # fill memory with simple writes
-    for addr, value in testvalues:
-        dut._log.info("Writing 0x{:02X} @ 0x{:02X}".format(value, addr))
-        await tspi2wb.write_byte(addr, value, datasize=datasize)
+    # fill memory with burst
+    await tspi2wb.burst_write(addr, writevalues, datasize=datasize)
 
     await Timer(50, units="us")
 
     # read burst
     readret = await tspi2wb.burst_read(0x10, datasize=16, nbByte=5)
-    dut._log.info(f"debug {readret}")
+
+    dut._log.info("DEBUG")
+    dut._log.info(readret)
 
     for value in readret:
-        print(f" {value} -> 0x{hex(int(value, 2))}")
+        try:
+            print(f" {value} -> 0x{hex(int(value, 2))}")
+        except ValueError:
+            print(f" {value} -> Unknown value")
 
     if not test_success:
         raise TestFailure("\n".join(test_msg))
