@@ -108,11 +108,30 @@ read/write.
 ## Install instructions
 
 This component use Chisel3 as HDL and Cocotb for testbench framework.
+
+First of all, some dependancies should be installed : 
+
+**WbPlumbing**:
+
+[WbPlumbing](https://github.com/Martoni/WbPlumbing) is a chisel library
+that do Wishbone connections. It should be published locally :
+
+```
+$ git clone https://github.com/Martoni/WbPlumbing.git
+$ cd WbPlumbing
+$ sbt "publishLocal"
+```
+
 There is a hack with cocotbify that require a git submodule. Then to clone it
 don't forget the recursive option :
 ```
 $ git clone --recurse-submodules https://github.com/Martoni/spi2wb.git
 ```
+
+**CocoTB**
+
+For cocotb simulation instruction see the [readme](https://github.com/Martoni/spi2wb/blob/master/cocotb/README.md).
+
 
 ## Simulation instructions
 
