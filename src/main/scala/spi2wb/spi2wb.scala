@@ -1,8 +1,8 @@
 package spi2wb
 
 import chisel3._
+import circt.stage.ChiselStage
 import chisel3.util._
-import chisel3.stage.{ChiselStage, ChiselGeneratorAnnotation}
 
 import wbplumbing.WbMaster
 
@@ -312,17 +312,24 @@ object Spi2Wb8 extends App {
   println("****************************")
   println("Virgin module")
   // chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(8, 7)))
-  )
+
+  ChiselStage.emitSystemVerilogFile(
+    new Spi2Wb(dwidth=8, awidth=7),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 
   println("Real world module with reset inverted")
   //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(8))
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(8)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new TopSpi2Wb(dwidth=8),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 }
 
 object Spi2WbExt8 extends App {
@@ -330,17 +337,22 @@ object Spi2WbExt8 extends App {
   println("* Generate 8Bits data with 15bits extended address *")
   println("*****************************************************")
   println("Virgin module")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=8,
-                                                     awidth=7,
-                                                     addr_ext=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new Spi2Wb(dwidth=8, awidth=7, addr_ext=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
+
   println("Real world module with reset inverted")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(8, extaddr=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new TopSpi2Wb(dwidth=8, extaddr=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 }
 
 object Spi2Wb16 extends App {
@@ -349,16 +361,23 @@ object Spi2Wb16 extends App {
   println("****************************")
   println("Virgin module")
   //chisel3.Driver.execute(Array[String](), () => new Spi2Wb(16, 7))
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(16, 7)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new Spi2Wb(dwidth=16, awidth=7),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
+
   println("Real world module with reset inverted")
   //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(16)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new TopSpi2Wb(dwidth=16),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 }
 
 
@@ -367,17 +386,22 @@ object Spi2WbExt16 extends App {
   println("* Generate 16Bits data with 15bits extended address *")
   println("*****************************************************")
   println("Virgin module")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=16,
-                                                     awidth=15,
-                                                     addr_ext=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new Spi2Wb(dwidth=16, awidth=15, addr_ext=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
+
   println("Real world module with reset inverted")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(dwidth=16, extaddr=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new TopSpi2Wb(dwidth=16, extaddr=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 }
 
 object Spi2WbExt16Burst extends App {
@@ -386,18 +410,20 @@ object Spi2WbExt16Burst extends App {
   println("* And Burst mode activated                          *")
   println("*****************************************************")
   println("Virgin module")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new Spi2Wb(dwidth=16,
-                                                     awidth=14,
-                                                     aburst=true,
-                                                     addr_ext=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new Spi2Wb(dwidth=16, awidth=14, aburst=true, addr_ext=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
+
   println("Real world module with reset inverted")
-  (new chisel3.stage.ChiselStage).execute(
-      Array("-X", "verilog"),
-      Seq(ChiselGeneratorAnnotation(() => new TopSpi2Wb(dwidth=16,
-                                                        aburst=true,
-                                                        extaddr=true)))
-  )
+  ChiselStage.emitSystemVerilogFile(
+    new TopSpi2Wb(dwidth=16, aburst=true, extaddr=true),
+    firtoolOpts = Array(
+      "-disable-all-randomization",
+      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
+      "-strip-debug-info"),
+    args=args)
 }
