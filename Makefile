@@ -19,7 +19,7 @@ test:
 	cd cocotb/; DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) make
 
 scalatest:
-	$(SBT) "test:testOnly spi2wb.TestSpi2Wb"
+	$(SBT) "Test / testOnly spi2wb.Spi2WbSpec"
 
 publishlocal:
 	$(SBT) publishLocal
