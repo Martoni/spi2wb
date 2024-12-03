@@ -1,10 +1,13 @@
-VIEW=gtkwave
-SIM=icarus
+VIEW?=gtkwave
+SIM?=icarus
 export COCOTB_REDUCED_LOG_FMT=1
 TOPLEVEL=TopSpi2Wb
 VERILOG_SOURCES = $(PWD)/../$(TOPLEVEL).sv
 MODULE=test_Spi2Wb
 
+ifeq ($(SIM),verilator)
+EXTRA_ARGS += --trace --trace-structs
+endif
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
