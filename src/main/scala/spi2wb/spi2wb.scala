@@ -109,7 +109,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
       when(fallingedge(sclkReg)){
         wrReg := io.spi.mosi
         count := 1.U
-        if(aburst) 
+        if(aburst)
           stateReg := swbreg
         else
           stateReg := saddr
@@ -251,7 +251,7 @@ class TopSpi2Wb (val dwidth: Int,
   val miso = IO(Output(Bool()))
   val sclk = IO(Input(Bool()))
   val csn  = IO(Input(Bool()))
-  
+
   val awidth = (extaddr, aburst) match {
           case (true,    false) => 15
           case (true,    true) => 14

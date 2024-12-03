@@ -12,7 +12,7 @@ $(PWD)/../$(TOPLEVEL).sv: $(PWD)/../src/main/scala/spi2wb/spi2wb.scala
 	echo "datasize "$(DATASIZE)
 	cd $(PWD)/../;DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) BURST=$(BURST) make
 
-view: 
+view:
 	$(VIEW) -a spi2wb.gtkw
 
 mrproper:
