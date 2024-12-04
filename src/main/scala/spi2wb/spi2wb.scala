@@ -213,27 +213,6 @@ class Spi2Wb (dwidth: Int, awidth: Int,
   io.wbm.cyc_o := wbCycReg
 }
 
-// Blinking module to validate hardware
-class BlinkLed extends Module {
-  val io = IO(new Bundle{
-    val blink = Output(Bool())
-  })
-
-  val blinkReg = RegNext(io.blink, false.B)
-  io.blink := blinkReg
-  val regSize = 24
-  val max = "h989680".U
-
-  val countReg = RegInit(0.U(regSize.W))
-
-  countReg := countReg + 1.U
-  when(countReg === max) {
-    countReg := 0.U
-    blinkReg := !blinkReg
-  }
-
-}
-
 // Testing Spi2Wb with a memory connexion
 // and reset inverted
 class TopSpi2Wb (val dwidth: Int,
@@ -242,9 +221,6 @@ class TopSpi2Wb (val dwidth: Int,
   // Clock & Reset
   val clock = IO(Input(Clock()))
   val rstn  = IO(Input(Bool()))
-
-  // Simple blink
-  val blink = IO(Output(Bool()))
 
   // SPI
   val mosi = IO(Input(Bool()))
@@ -259,10 +235,6 @@ class TopSpi2Wb (val dwidth: Int,
           case (false,   true) => 6}
 
   withClockAndReset(clock, !rstn) {
-    // Blink connections
-    val blinkModule = Module(new BlinkLed)
-    blink := blinkModule.io.blink
-
     // SPI to wb connections
     val slavespi = Module(new Spi2Wb(dwidth=dwidth,
                                      awidth=awidth,
