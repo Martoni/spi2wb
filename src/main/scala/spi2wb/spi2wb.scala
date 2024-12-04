@@ -149,7 +149,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
     }
     is(sdataread){
       when(risingedge(sclkReg)){
-        misoReg := dataReg((spiAddressWidth + dwidth).U - count)
+        misoReg := dataReg(((spiAddressWidth + dwidth).U - count)(log2Ceil(dwidth)-1, 0))
         count := count + 1.U
       }
       if (!aburst)
