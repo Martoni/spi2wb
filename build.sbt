@@ -6,6 +6,13 @@ scalaVersion     := "2.13.12"
 version          := majorChiselVersion + "." + minorChiselVersion + ".0"
 organization     := "org.armadeus"
 
+credentials += Credentials(
+  "GitHub Package Registry",
+  "maven.pkg.github.com",
+  "_",
+  System.getenv("GITHUB_TOKEN")
+)
+
 resolvers ++= Seq("GitHub WbPlumbing Martoni Apache Maven Packages" at "https://maven.pkg.github.com/Martoni/WbPlumbing")
 
 lazy val root = (project in file("."))
@@ -24,3 +31,6 @@ lazy val root = (project in file("."))
     ),
     addCompilerPlugin("org.chipsalliance" % "chisel-plugin" % chiselVersion cross CrossVersion.full),
   )
+
+publishTo := Some("GitHub wbGPIO Martoni Apache Maven Packages" at "https://maven.pkg.github.com/Martoni/spi2wb")
+publishMavenStyle := true
