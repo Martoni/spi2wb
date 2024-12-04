@@ -192,15 +192,7 @@ async def test_burst_read(dut):
     dut._log.info(readret)
 
     for readval, expval in zip(readret, writevalues):
-        if readval != expval:
-            msg = ("Value read 0x{:x} @0x{:02X} should be 0x{:02X}"
-                    .format(readval, addr, expval))
-            dut._log.error(msg)
-            test_msg.append(msg)
-            test_success = False
-
-    if not test_success:
-        raise TestFailure("\n".join(test_msg))
+        assert int(readval) == expval, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(readval, addr, expvalue)
 
 @cocotb.test(skip=not Tone_data_frame)
 async def test_one_data_frame(dut):
@@ -234,16 +226,6 @@ async def test_one_data_frame(dut):
         await tspi2wb.write_word(addr, value)
 
     # Reading back
-    for addr, value in testvalues:
+    for addr, expvalue in testvalues:
         readval = await tspi2wb.read_word(addr)
-        dut._log.info("Read byte 0x{:x} @ 0x{:02X} (should be 0x{:02X})"
-                .format(readval, addr, value))
-        if int(readval) != value:
-            msg = ("Value read 0x{:x} @0x{:02X} should be 0x{:02X}"
-                    .format(readval, addr, value))
-            dut._log.error(msg)
-            test_msg.append(msg)
-            test_success = False
-
-    if not test_success:
-        raise TestFailure("\n".join(test_msg))
+        assert int(readval) == expvalue, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(readval, addr, expvalue)
