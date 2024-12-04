@@ -35,7 +35,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
   assert(dwidth == 8 || dwidth == 16,
     "Only 8bits or 16bits data supported")
 
-  val spiAddressWith  = (addr_ext, aburst) match {
+  val spiAddressWidth  = (addr_ext, aburst) match {
           case (true, false) => {
               assert(awidth <= 15,
                  "Maximum 15 bits address actually supported")
@@ -125,7 +125,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
       when(fallingedge(sclkReg)){
         addrReg := addrReg(awidth - 1, 0) ## io.spi.mosi
         count := count + 1.U
-        when(count >= spiAddressWith.U) {
+        when(count >= spiAddressWidth.U) {
           when(wrReg){
             stateReg := sdatawrite
           }
@@ -149,18 +149,18 @@ class Spi2Wb (dwidth: Int, awidth: Int,
     }
     is(sdataread){
       when(risingedge(sclkReg)){
-        misoReg := dataReg((spiAddressWith + dwidth).U - count)
+        misoReg := dataReg((spiAddressWidth + dwidth).U - count)
         count := count + 1.U
       }
       if (!aburst)
-      when(count >= (2 + spiAddressWith + dwidth).U){
+      when(count >= (2 + spiAddressWidth + dwidth).U){
           stateReg := sinit
       }
       else{
-        when(count >= (1 + spiAddressWith + dwidth).U){
+        when(count >= (1 + spiAddressWidth + dwidth).U){
           when(fallingedge(sclkReg)){
             addrReg := addrReg + 1.U
-            count := (spiAddressWith + 1).U
+            count := (spiAddressWidth + 1).U
             wbWeReg  := false.B
             wbStbReg := true.B
             stateReg := swbread
@@ -173,7 +173,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
         dataReg := dataReg(dwidth-2, 0) ## io.spi.mosi
         count := count + 1.U
       }
-      when(count >= (1 + spiAddressWith + dwidth).U){
+      when(count >= (1 + spiAddressWidth + dwidth).U){
         stateReg := swbwrite
       }
     }
@@ -189,7 +189,7 @@ class Spi2Wb (dwidth: Int, awidth: Int,
             stateReg := sinit
           }else{
             addrReg := addrReg + 1.U
-            count := (spiAddressWith + 1).U
+            count := (spiAddressWidth + 1).U
             dataReg := 0.U
             stateReg := sdatawrite
           }
