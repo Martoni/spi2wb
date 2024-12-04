@@ -291,21 +291,6 @@ class TopSpi2Wb (val dwidth: Int,
   }
 }
 
-object Spi2Wb extends App {
-  println("*********")
-  println("*  /!\\  *")
-  println("*********")
-  println("-> To Generate verilog sources choose datasize ")
-  println("* For 8 bits:")
-  println("$DATASIZE=8 make")
-  println("* For 16 bits:")
-  println("$DATASIZE=16 make")
-  println("* For 16 bits with extended address:")
-  println("$DATASIZE=16 EXTADDR=1 make")
-  println("")
-  println("No verilog generated")
-}
-
 object Spi2Wb8 extends App {
   println("****************************")
   println("* Generate 8Bits data vers *")

@@ -1,8 +1,11 @@
 VIEW?=gtkwave
 SIM?=icarus
+COCOTBVERILOGDIR?=../
+
 export COCOTB_REDUCED_LOG_FMT=1
+
 TOPLEVEL=TopSpi2Wb
-VERILOG_SOURCES = $(PWD)/../$(TOPLEVEL).sv
+VERILOG_SOURCES = $(COCOTBVERILOGDIR)/$(TOPLEVEL).sv
 MODULE=test_Spi2Wb
 
 ifeq ($(SIM),verilator)
@@ -16,17 +19,14 @@ all: res
 res: results.xml
 	@if grep -Eq "<failure .+ \/>" results.xml; then exit 1; fi
 
-$(PWD)/../$(TOPLEVEL).sv: $(PWD)/../src/main/scala/spi2wb/spi2wb.scala
-	echo "datasize "$(DATASIZE)
-	cd $(PWD)/../;DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) BURST=$(BURST) make
-
 view:
 	$(VIEW) -a spi2wb.gtkw
 
 mrproper:
-	-rm $(PWD)/../$(TOPLEVEL).sv
 	-rm $(TOPLEVEL).vcd
-	-rm -rf sim_build
+	-rm dump.vcd
+	-rm -rf sim_test-spi2wb*
 	-rm -rf build
 	-rm results.xml
 	-rm *.pyc
+	-rm -rf __pycache__

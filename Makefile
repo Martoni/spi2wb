@@ -12,11 +12,60 @@ else
 	BURST=
 endif
 
-hdl:
-	$(SBT) "runMain spi2wb.Spi2Wb$(EXT)$(DATASIZE)$(BURST)"
+CHISELSRC=$(PWD)/src/main/scala/spi2wb/spi2wb.scala
+VERILOGDIR=$(PWD)/verilog
+VERILOGDIR_SPI2WB8=$(VERILOGDIR)/Spi2Wb8
+VERILOGSRC_SPI2WB8=$(addprefix $(VERILOGDIR_SPI2WB8)/, Spi2Wb.sv TopSpi2Wb.sv)
+VERILOGDIR_SPI2WBEXT8=$(VERILOGDIR)/Spi2WbExt8
+VERILOGSRC_SPI2WBEXT8=$(addprefix $(VERILOGDIR_SPI2WBEXT8)/, Spi2Wb.sv TopSpi2Wb.sv)
+VERILOGDIR_SPI2WB16=$(VERILOGDIR)/Spi2Wb16
+VERILOGSRC_SPI2WB16=$(addprefix $(VERILOGDIR_SPI2WB16)/, Spi2Wb.sv TopSpi2Wb.sv)
+VERILOGDIR_SPI2WBEXT16=$(VERILOGDIR)/Spi2WbExt16
+VERILOGSRC_SPI2WBEXT16=$(addprefix $(VERILOGDIR_SPI2WBEXT16)/, Spi2Wb.sv TopSpi2Wb.sv)
+VERILOGDIR_SPI2WBEXT16BURST=$(VERILOGDIR)/Spi2WbExt16Burst
+VERILOGSRC_SPI2WBEXT16BURST=$(addprefix $(VERILOGDIR_SPI2WBEXT16BURST)/, Spi2Wb.sv TopSpi2Wb.sv)
 
-test:
-	cd cocotb/; DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) make
+all: hdl
+
+hdl: hdl-spi2wb8 hdl-spi2wbext8 hdl-spi2wb16 hdl-spi2wbext16 hdl-spi2wbext16burst
+
+hdl-spi2wb8: $(VERILOGSRC_SPI2WB8)
+hdl-spi2wbext8: $(VERILOGSRC_SPI2WBEXT8)
+hdl-spi2wb16: $(VERILOGSRC_SPI2WB16)
+hdl-spi2wbext16: $(VERILOGSRC_SPI2WBEXT16)
+hdl-spi2wbext16burst: $(VERILOGSRC_SPI2WBEXT16BURST)
+
+$(VERILOGSRC_SPI2WB8): $(CHISELSRC)
+	$(SBT) "runMain spi2wb.Spi2Wb8 --target-dir "$(VERILOGDIR_SPI2WB8)""
+
+$(VERILOGSRC_SPI2WBEXT8): $(CHISELSRC)
+	$(SBT) "runMain spi2wb.Spi2WbExt8 --target-dir "$(VERILOGDIR_SPI2WBEXT8)""
+
+$(VERILOGSRC_SPI2WB16): $(CHISELSRC)
+	$(SBT) "runMain spi2wb.Spi2Wb16 --target-dir "$(VERILOGDIR_SPI2WB16)""
+
+$(VERILOGSRC_SPI2WBEXT16): $(CHISELSRC)
+	$(SBT) "runMain spi2wb.Spi2WbExt16 --target-dir "$(VERILOGDIR_SPI2WBEXT16)""
+
+$(VERILOGSRC_SPI2WBEXT16BURST): $(CHISELSRC)
+	$(SBT) "runMain spi2wb.Spi2WbExt16Burst --target-dir "$(VERILOGDIR_SPI2WBEXT16BURST)""
+
+test: test-spi2wb8 test-spi2wbext8 test-spi2wb16 test-spi2wbext16 test-spi2wbext16burst
+
+test-spi2wb8: $(VERILOGSRC_SPI2WB8)
+	DATASIZE=8 EXTADDR=0 BURST=0 SIM_BUILD=sim_$@ COCOTBVERILOGDIR=$(VERILOGDIR_SPI2WB8) make -C cocotb
+
+test-spi2wbext8: $(VERILOGSRC_SPI2WBEXT8)
+	DATASIZE=8 EXTADDR=1 BURST=0 SIM_BUILD=sim_$@ COCOTBVERILOGDIR=$(VERILOGDIR_SPI2WBEXT8) make -C cocotb
+
+test-spi2wb16: $(VERILOGSRC_SPI2WB16)
+	DATASIZE=16 EXTADDR=0 BURST=0 SIM_BUILD=sim_$@ COCOTBVERILOGDIR=$(VERILOGDIR_SPI2WB16) make -C cocotb
+
+test-spi2wbext16: $(VERILOGSRC_SPI2WBEXT16)
+	DATASIZE=16 EXTADDR=1 BURST=0 SIM_BUILD=sim_$@ COCOTBVERILOGDIR=$(VERILOGDIR_SPI2WBEXT16) make -C cocotb
+
+test-spi2wbext16burst: $(VERILOGSRC_SPI2WBEXT16BURST)
+	DATASIZE=16 EXTADDR=1 BURST=1 SIM_BUILD=sim_$@ COCOTBVERILOGDIR=$(VERILOGDIR_SPI2WBEXT16BURST) make -C cocotb
 
 scalatest:
 	$(SBT) "Test / testOnly spi2wb.Spi2WbSpec"
@@ -26,9 +75,7 @@ publishlocal:
 
 mrproper:
 	make -C cocotb/ mrproper
-	-rm *.anno.json
-	-rm *.fir
-	-rm *.v
+	-rm -rf $(VERILOGDIR)
 	-rm -rf target
 	-rm -rf test_run_dir
 	-rm -rf project

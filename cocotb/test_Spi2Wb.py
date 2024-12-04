@@ -14,16 +14,20 @@ from cocotbext.spi import *
 
 DATASIZE = os.environ['DATASIZE']
 
-Tburst_read = True
-Tone_data_frame = True
 
 try:
     EXTADDR = os.environ['EXTADDR']
 except KeyError:
     EXTADDR = "0"
+
+Tone_data_frame = True
+Tburst_read = False
+
 try:
     BURST = os.environ['BURST']
-    Tone_data_frame = False
+    if BURST == "1":
+        Tburst_read = True
+        Tone_data_frame = False
 except KeyError:
     BURST = "0"
 
