@@ -11,6 +11,11 @@ endif
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
+all: res
+
+res: results.xml
+	@if grep -Eq "<failure .+ \/>" results.xml; then exit 1; fi
+
 $(PWD)/../$(TOPLEVEL).sv: $(PWD)/../src/main/scala/spi2wb/spi2wb.scala
 	echo "datasize "$(DATASIZE)
 	cd $(PWD)/../;DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) BURST=$(BURST) make
