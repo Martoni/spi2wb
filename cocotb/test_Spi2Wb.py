@@ -32,7 +32,7 @@ except KeyError:
 
 class TestSpi2Wb(object):
 
-    def __init__(self, dut, clock, cpol=0, cpha=1,
+    def __init__(self, dut, cpol=0, cpha=1,
                  datasize=DATASIZE, addr_ext=EXTADDR,
                  burst=BURST):
         self._dut = dut
@@ -61,7 +61,8 @@ class TestSpi2Wb(object):
         if cpha == 0:
             raise NotImplementedError("cpha = 0 not implemented yet")
 
-        self._clock_thread = cocotb.start_soon(clock.start())
+        self._clock = Clock(dut.clock, 50, "ns")
+        self._clock_thread = cocotb.start_soon(self._clock.start())
 
         spi_bus = SpiBus.from_entity(dut, cs_name='csn')
 
@@ -167,7 +168,7 @@ async def test_burst_read(dut):
     test_success =True
 
     dut._log.info("Launching tspi2wb burst test")
-    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
+    tspi2wb = TestSpi2Wb(dut)
     if tspi2wb.addr_ext:
         dut._log.info("Address is extended to 14bits")
     await tspi2wb.reset()
@@ -197,7 +198,7 @@ async def test_one_data_frame(dut):
     test_success = True
     test_msg = []
     dut._log.info("Launching tspi2wb test")
-    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
+    tspi2wb = TestSpi2Wb(dut)
     await Timer(10, 'us')
     if tspi2wb.addr_ext:
         dut._log.info("Address is extended to 15bits")
