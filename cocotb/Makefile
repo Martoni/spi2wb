@@ -1,27 +1,32 @@
-VIEW=gtkwave
-SIM=icarus
+VIEW?=gtkwave
+SIM?=icarus
+COCOTBVERILOGDIR?=../
+
 export COCOTB_REDUCED_LOG_FMT=1
+
 TOPLEVEL=TopSpi2Wb
-VERILOG_SOURCES = $(PWD)/$(TOPLEVEL)Cocotb.v
+VERILOG_SOURCES = $(COCOTBVERILOGDIR)/$(TOPLEVEL).sv
 MODULE=test_Spi2Wb
+
+ifeq ($(SIM),verilator)
+EXTRA_ARGS += --trace --trace-structs
+endif
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-$(PWD)/$(TOPLEVEL)Cocotb.v: $(PWD)/../$(TOPLEVEL).v
-	python cocotbify/cocotbify/cocotbify.py -v $(PWD)/../$(TOPLEVEL).v -o $(PWD)/$(TOPLEVEL)Cocotb.v
+all: res
 
-$(PWD)/../$(TOPLEVEL).v: $(PWD)/../src/main/scala/spi2wb/spi2wb.scala
-	echo "datasize "$(DATASIZE)
-	cd $(PWD)/../;DATASIZE=$(DATASIZE) EXTADDR=$(EXTADDR) BURST=$(BURST) make
+res: results.xml
+	@if grep -Eq "<failure .+ \/>" results.xml; then exit 1; fi
 
-view: 
+view:
 	$(VIEW) -a spi2wb.gtkw
 
 mrproper:
-	-rm $(PWD)/../$(TOPLEVEL).v
-	-rm $(PWD)/$(TOPLEVEL)Cocotb.v
 	-rm $(TOPLEVEL).vcd
-	-rm -rf sim_build
+	-rm dump.vcd
+	-rm -rf sim_test-spi2wb*
 	-rm -rf build
 	-rm results.xml
 	-rm *.pyc
+	-rm -rf __pycache__

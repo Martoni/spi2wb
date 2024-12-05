@@ -1,22 +1,36 @@
-scalaVersion     := "2.12.12"
-version          := "1.5.1"
+val majorChiselVersion = "6"
+val minorChiselVersion = "2"
+val chiselVersion = majorChiselVersion + "." + minorChiselVersion + ".0"
+
+scalaVersion     := "2.13.12"
+version          := majorChiselVersion + "." + minorChiselVersion + ".0"
 organization     := "org.armadeus"
+
+credentials += Credentials(
+  "GitHub Package Registry",
+  "maven.pkg.github.com",
+  "_",
+  System.getenv("GITHUB_TOKEN")
+)
+
+resolvers ++= Seq("GitHub WbPlumbing Martoni Apache Maven Packages" at "https://maven.pkg.github.com/Martoni/WbPlumbing")
 
 lazy val root = (project in file("."))
   .settings(
     name := "spi2wb",
     libraryDependencies ++= Seq(
-      "edu.berkeley.cs" %% "chisel3" % "3.5.0-RC1",
-      "edu.berkeley.cs" %% "chiseltest" % "0.3.2" % "test",
-      "org.armadeus" %% "wbplumbing" % "0.1-SNAPSHOT"
+      "org.chipsalliance" %% "chisel" % chiselVersion,
+      "org.scalatest" %% "scalatest" % "3.2.19" % "test",
+      "org.armadeus" %% "wbplumbing" % "6.2.6"
     ),
     scalacOptions ++= Seq(
-      "-Xsource:2.11",
       "-language:reflectiveCalls",
       "-deprecation",
       "-feature",
       "-Xcheckinit"
     ),
-    addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.0-RC1" cross CrossVersion.full),
-    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+    addCompilerPlugin("org.chipsalliance" % "chisel-plugin" % chiselVersion cross CrossVersion.full),
   )
+
+publishTo := Some("GitHub wbGPIO Martoni Apache Maven Packages" at "https://maven.pkg.github.com/Martoni/spi2wb")
+publishMavenStyle := true

@@ -122,12 +122,6 @@ $ cd WbPlumbing
 $ sbt "publishLocal"
 ```
 
-There is a hack with cocotbify that require a git submodule. Then to clone it
-don't forget the recursive option :
-```
-$ git clone --recurse-submodules https://github.com/Martoni/spi2wb.git
-```
-
 **CocoTB**
 
 For cocotb simulation instruction see the [readme](https://github.com/Martoni/spi2wb/blob/master/cocotb/README.md).
@@ -139,39 +133,36 @@ For cocotb simulation instruction see the [readme](https://github.com/Martoni/sp
 
 A minimal code has been written in *src/test/scala* to test the component in scala. To launch it simply use make:
 ```shell
-$ make test
+$ make scalatest
 ```
 But the actual testbench is written with Python Cocotb module.
 
 ### Cocotb
 
-To simulate the module go to cocotb/ directory:
+- For all testbenches do:
+```shell
+$ make test
+```
 - For 8 bits datasize do:
 ```shell
-$ cd cocotb
-$ DATASIZE=8 make
+$ make test-spi2wb8
 ```
 - For 16 bits datasize do:
 ```shell
-$ cd cocotb
-$ DATASIZE=16 make
+$ make test-spi2wb16
 ```
-
 - For 16 bits datasize with extended address do:
 ```shell
-$ cd cocotb
-$ DATASIZE=16 EXTADDR=1 make
+$ make test-spi2wbext16
 ```
-
 - For 16 bits datasize with extended address and burst do:
 ```shell
-$ cd cocotb
-$ DATASIZE=16 EXTADDR=1 BURST=1 make
+$ make test-spi2wbext16burst
 ```
 
 To see waveform use gtkwave with following command :
 ```
-$ gtkwave TopSpi2Wb.vcd
+$ gtkwave cocotb/TopSpi2Wb.vcd
 ```
 ## Test hardware
 
