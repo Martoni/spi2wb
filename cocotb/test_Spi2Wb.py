@@ -14,7 +14,6 @@ from cocotbext.spi import *
 
 DATASIZE = os.environ['DATASIZE']
 
-
 try:
     EXTADDR = os.environ['EXTADDR']
 except KeyError:
@@ -30,7 +29,6 @@ try:
         Tone_data_frame = False
 except KeyError:
     BURST = "0"
-
 
 class TestSpi2Wb(object):
 
