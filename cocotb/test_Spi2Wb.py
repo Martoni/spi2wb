@@ -1,6 +1,10 @@
 import os
 import cocotb
 import logging
+import random
+
+from itertools import repeat
+
 from cocotb.triggers import Timer
 from cocotb.result import raise_error
 from cocotb.result import TestError, TestFailure
@@ -12,60 +16,30 @@ from cocotb.triggers import ClockCycles
 
 from cocotbext.spi import *
 
-DATASIZE = os.environ['DATASIZE']
-
-
-try:
-    EXTADDR = os.environ['EXTADDR']
-except KeyError:
-    EXTADDR = "0"
-
-Tone_data_frame = True
-Tburst_read = False
-
-try:
-    BURST = os.environ['BURST']
-    if BURST == "1":
-        Tburst_read = True
-        Tone_data_frame = False
-except KeyError:
-    BURST = "0"
-
+from cocotbext.wishbone.monitor import WishboneSlave
 
 class TestSpi2Wb(object):
 
-    def __init__(self, dut, clock, cpol=0, cpha=1,
-                 datasize=DATASIZE, addr_ext=EXTADDR,
-                 burst=BURST):
+    def __init__(self, dut, datasize, addr_ext, burst,
+                 cpol=0, cpha=1, wbdatgen=repeat(int(0))):
         self._dut = dut
         self.log = dut._log
         self._cpol = cpol
         self._cpha = cpha
-        if addr_ext == "1":
-            self.log.info("Extended spi address mode")
-            self.addr_ext = True
-        else:
-            self.log.info("Simple spi address mode")
-            self.addr_ext = False
-        if burst == "1":
-            self.log.info("Burst enabled mode")
-            self.burst = True
-        else:
-            self.burst = False
+        self.addr_ext = addr_ext
+        self.burst = burst
 
-        if not int(datasize) in [8, 16]:
-            raise NotImplementedError("Size {} not supported".format(datasize))
-
-        self.datasize = int(datasize)
+        self.datasize = datasize
 
         if cpol == 1:
             raise NotImplementedError("cpol = 1 not implemented yet")
         if cpha == 0:
             raise NotImplementedError("cpha = 0 not implemented yet")
 
-        self._clock_thread = cocotb.start_soon(clock.start())
+        self._clock = Clock(dut.clock, 50, "ns")
+        self._clock_thread = cocotb.start_soon(self._clock.start())
 
-        spi_bus = SpiBus.from_entity(dut, cs_name='csn')
+        spi_bus = SpiBus.from_prefix(dut, "io_spi", cs_name='csn')
 
         self.spi_config = SpiConfig(word_width = 8,
                                     sclk_freq = 1e6,
@@ -79,14 +53,25 @@ class TestSpi2Wb(object):
 
         self.spimod = SpiMaster(spi_bus, self.spi_config)
 
+        self.wbm = WishboneSlave(dut, "io_wbm", dut.clock,
+                                  width=self.datasize,
+                                  signals_dict={"cyc": "cyc_o",
+                                                "stb": "stb_o",
+                                                "we": "we_o",
+                                                "adr": "adr_o",
+                                                "datwr": "dat_o",
+                                                "datrd": "dat_i",
+                                                "ack": "ack_i" },
+                                  datgen=wbdatgen)
+
     async def reset(self):
-        self._dut.rstn.value = 0
+        self._dut.reset.value = 1
         short_per = Timer(100, units="ns")
         await short_per
-        self._dut.rstn.value = 1
+        self._dut.reset.value = 0
         await short_per
 
-    async def _transfer(self, addr, values=[], write=False, burst=False):
+    async def _transfer(self, addr, values=[], write=False):
 
         b = []
 
@@ -102,7 +87,7 @@ class TestSpi2Wb(object):
         if write:
             addr = addr | write_bit
 
-        if burst:
+        if self.burst and len(values) > 1:
             addr = addr | burst_bit
 
         if self.addr_ext:
@@ -138,94 +123,137 @@ class TestSpi2Wb(object):
         else:
             return ret
 
-    async def write_word(self, addr, value):
-        return await self._transfer(addr, [value], write=True, burst=False)
-
-    async def read_word(self, addr):
-        return (await self._transfer(addr, [0x0], write=False, burst=False))[0]
-
-    async def burst_write(self, addr, lvalues=[]):
-        if BURST != "1":
+    async def write(self, addr, values=[]):
+        if (not self.burst) and (len(values) != 1):
             raise NotImplementedError("BURST synthesis option not set")
-        if len(lvalues) < 2:
-            raise NotImplementedError("should be at least 2 bytes lenght burst")
 
-        return await self._transfer(addr, lvalues, write=True, burst=True)
+        await self._transfer(addr, values, write=True)
 
-    async def burst_read(self, addr, nbByte=10):
-        if BURST != "1":
+    async def read(self, addr, nbbyte=1):
+        if (not self.burst) and (nbbyte != 1):
             raise NotImplementedError("BURST synthesis option not set")
-        if nbByte < 2:
-            raise NotImplementedError("should be at least 2 bytes lenght burst")
 
         b = []
-        for _ in range(nbByte):
+        for _ in range(nbbyte):
             b.append(0x0)
 
         return await self._transfer(addr, b, write=False)
 
-@cocotb.test(skip=not Tburst_read)
-async def test_burst_read(dut):
-    test_success =True
-
-    dut._log.info("Launching tspi2wb burst test")
-    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
-    if tspi2wb.addr_ext:
-        dut._log.info("Address is extended to 14bits")
-    await tspi2wb.reset()
-    sclk_per = Timer(10, units="ns")
-    short_per = Timer(100, units="ns")
-
-    addr = 0x10
-    testvalues = [(addr, (0xaa<<8 | addr)) for addr in range(addr,addr + 6)]
-    writevalues = [value[-1] for value in testvalues]
-
-    # fill memory with burst
-    await tspi2wb.burst_write(addr, writevalues)
-
-    await Timer(50, units="us")
-
-    # read burst
-    readret = await tspi2wb.burst_read(0x10, nbByte=6)
-
-    dut._log.info("DEBUG")
-    dut._log.info(readret)
-
-    for readval, expval in zip(readret, writevalues):
-        assert int(readval) == expval, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(readval, addr, expvalue)
-
-@cocotb.test(skip=not Tone_data_frame)
-async def test_one_data_frame(dut):
-    test_success = True
-    test_msg = []
-    dut._log.info("Launching tspi2wb test")
-    tspi2wb = TestSpi2Wb(dut, Clock(dut.clock, 1, "ns"))
-    await Timer(10, 'us')
-    if tspi2wb.addr_ext:
-        dut._log.info("Address is extended to 15bits")
+async def test_write(dut, frames, datasize, extaddr, burst):
+    tspi2wb = TestSpi2Wb(dut, datasize, extaddr, burst)
     await tspi2wb.reset()
 
-    sclk_per = Timer(10, units="ns")
-    short_per = Timer(100, units="ns")
-    if tspi2wb.datasize == 8:
-        #              addr  value
-        testvalues = [(0x02, 0xca),
-                      (0x10, 0xfe),
-                      (0x00, 0x55),
-                      (0x7F, 0x12)]
-    elif tspi2wb.datasize == 16:
-        #              addr  value
-        testvalues = [(0x02, 0xcafe),
-                      (0x10, 0xfeca),
-                      (0x00, 0x5599),
-                      (0x7F, 0x1234)]
+    for f in frames:
+        await tspi2wb.write(f[0], f[1])
 
-    # Writing values
-    for addr, value in testvalues:
-        dut._log.info("Writing 0x{:02X} @ 0x{:02X}".format(value, addr))
-        await tspi2wb.write_word(addr, value)
+    await Timer(10, units="us")
 
-    # Reading back
-    for addr, expvalue in testvalues:
-        readval = await tspi2wb.read_word(addr)
-        assert int(readval) == expvalue, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(readval, addr, expvalue)
+    transaction_count = len(tspi2wb.wbm._recvQ)
+    transaction_count_exp = len(frames)
+    assert transaction_count == transaction_count_exp, "Incorrect number of transaction received"
+
+    for transaction, f in zip(tspi2wb.wbm._recvQ, frames):
+        transaction_len = len(transaction)
+        transaction_len_exp = len(f[1])
+        assert transaction_len == transaction_len_exp, "Transaction length does not match with frame length"
+        addr = f[0]
+        for t, wexp in zip(transaction, f[1]):
+            assert int(t.adr) == addr, "Bad address @0x{:02X}, expected @0x{:02X}".format(int(t.adr), addr)
+            assert int(t.datwr) == wexp, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(int(t.datwr), addr, wexp)
+            addr = addr + 1
+
+async def test_read(dut, frames, datasize, extaddr, burst):
+    writevalues = []
+    for f in frames:
+        writevalues = writevalues + f[1]
+        if burst:
+            writevalues = writevalues + [0x0] # Add extra word to mock cocotbext-wishbone
+
+    tspi2wb = TestSpi2Wb(dut, datasize, extaddr, burst, wbdatgen=iter(writevalues))
+    await tspi2wb.reset()
+
+    readframes = []
+    for f in frames:
+        readframes.append(await tspi2wb.read(f[0], nbbyte=len(f[1])))
+
+    await Timer(10, units="us")
+
+    transaction_count = len(tspi2wb.wbm._recvQ)
+    assert transaction_count == len(frames), "Incorrect transaction count received"
+
+    for transaction, f in zip(tspi2wb.wbm._recvQ, frames):
+        exp_transaction_len = len(f[1])
+        if burst:
+            exp_transaction_len = exp_transaction_len + 1 # Add the extra transaction
+        assert len(transaction) == exp_transaction_len, "Transaction too short"
+        addr = f[0]
+        for t, expval in zip(transaction, f[1]):
+            assert int(t.adr) == addr, "Bad address @0x{:02X}, expected @0x{:02X}".format(int(t.adr), addr)
+            assert int(t.datrd) == expval, "Value read 0x{:x} @0x{:02X} should be 0x{:02X}".format(t.datrd, f[0], expval)
+            addr = addr + 1
+
+# Get environment variables
+datasize = int(os.environ['DATASIZE'])
+
+if not datasize in [8, 16]:
+    raise NotImplementedError("Size {} not supported".format(datasize))
+
+extaddr = False
+try:
+    if os.environ['EXTADDR'] == "1":
+        extaddr = True
+except KeyError:
+    pass
+
+burst = False
+try:
+    if os.environ['BURST'] == "1":
+        burst = True
+except KeyError:
+    pass
+
+random.seed(1712317)
+
+#Test parameters
+max_num_frames = 10
+num_test_set = 4
+max_burst_frame_len = 10
+
+switch_max_addr = {
+    #extaddr, burst
+    (False, False): 0x7f,
+    (False, True): 0x3f,
+    (True, False): 0x7fff,
+    (True, True): 0x3fff
+    }
+
+max_addr = switch_max_addr.get((extaddr, burst))
+max_val = 0xff if datasize == 8 else 0xffff
+max_len = 1 if not burst else max_burst_frame_len
+
+def generate_test_sets():
+    test_sets = []
+    for _ in range(num_test_set):
+        num_frames = random.randint(1, max_num_frames)
+        frames = []
+        for _ in range(num_frames):
+            length = random.randint(1, max_len)
+            addr = random.randint(0, max_addr)
+            values = [random.randint(0, max_val) for _ in range(length)]
+            f = (addr, values)
+            frames.append(f)
+
+        test_sets.append(frames)
+
+    return test_sets
+
+write_test_sets = generate_test_sets()
+read_test_sets = generate_test_sets()
+
+tf_test_write = cocotb.regression.TestFactory(test_function=test_write, datasize=datasize, extaddr=extaddr, burst=burst)
+tf_test_write.add_option(name='frames', optionlist=write_test_sets)
+tf_test_write.generate_tests()
+
+tf_test_read = cocotb.regression.TestFactory(test_function=test_read, datasize=datasize, extaddr=extaddr, burst=burst)
+tf_test_read.add_option(name='frames', optionlist=read_test_sets)
+tf_test_read.generate_tests()
