@@ -233,7 +233,7 @@ object Spi2WbExt8 extends App {
   println("*****************************************************")
 
   ChiselStage.emitSystemVerilogFile(
-    new Spi2Wb(dwidth=8, awidth=7, addr_ext=true),
+    new Spi2Wb(dwidth=8, awidth=15, addr_ext=true),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
