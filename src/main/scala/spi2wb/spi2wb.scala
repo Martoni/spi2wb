@@ -18,10 +18,11 @@ class SpiSlave extends Bundle {
  */
 class Spi2Wb (dwidth: Int, awidth: Int,
               aburst: Boolean = false,
-              addr_ext: Boolean = false) extends Module {
+              addr_ext: Boolean = false,
+              wbfeature_err: Boolean = false) extends Module {
   val io = IO(new Bundle{
     // Wishbone master output
-    val wbm = new WbMaster(dwidth, awidth)
+    val wbm = new WbMaster(dwidth, awidth, feature_err = wbfeature_err)
     // SPI signals
     val spi = new SpiSlave()
   })
