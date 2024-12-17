@@ -214,75 +214,13 @@ class Spi2Wb (dwidth: Int, awidth: Int,
   io.wbm.cyc_o := wbCycReg
 }
 
-// Testing Spi2Wb with a memory connexion
-// and reset inverted
-class TopSpi2Wb (val dwidth: Int,
-                 val aburst: Boolean = false,
-                 val extaddr: Boolean = false) extends RawModule {
-  // Clock & Reset
-  val clock = IO(Input(Clock()))
-  val rstn  = IO(Input(Bool()))
-
-  // SPI
-  val mosi = IO(Input(Bool()))
-  val miso = IO(Output(Bool()))
-  val sclk = IO(Input(Bool()))
-  val csn  = IO(Input(Bool()))
-
-  val awidth = (extaddr, aburst) match {
-          case (true,    false) => 15
-          case (true,    true) => 14
-          case (false,   false) => 7
-          case (false,   true) => 6}
-
-  withClockAndReset(clock, !rstn) {
-    // SPI to wb connections
-    val slavespi = Module(new Spi2Wb(dwidth=dwidth,
-                                     awidth=awidth,
-                                     aburst=aburst,
-                                     addr_ext=extaddr))
-    miso := slavespi.io.spi.miso
-    // spi
-    slavespi.io.spi.mosi := ShiftRegister(mosi, 2) // ShiftRegister
-    slavespi.io.spi.sclk := ShiftRegister(sclk, 2) // used for clock
-    slavespi.io.spi.csn  := ShiftRegister(csn, 2)  // synchronisation
-
-    // wb memory connexion
-    val wmem = SyncReadMem(1 << awidth, UInt(dwidth.W))
-
-    slavespi.io.wbm.ack_i := false.B
-    when(slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o) {
-      when(slavespi.io.wbm.we_o){
-        // Write memory
-        wmem.write(slavespi.io.wbm.adr_o, slavespi.io.wbm.dat_o)
-      }
-      // read memory
-    }
-    slavespi.io.wbm.ack_i := RegNext(slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o) &&
-                                    (slavespi.io.wbm.stb_o && slavespi.io.wbm.cyc_o)
-    slavespi.io.wbm.dat_i := wmem.read(slavespi.io.wbm.adr_o)
-  }
-}
-
 object Spi2Wb8 extends App {
   println("****************************")
   println("* Generate 8Bits data vers *")
   println("****************************")
-  println("Virgin module")
-  // chisel3.Driver.execute(Array[String](), () => new Spi2Wb(8, 7))
 
   ChiselStage.emitSystemVerilogFile(
     new Spi2Wb(dwidth=8, awidth=7),
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
-      "-strip-debug-info"),
-    args=args)
-
-  println("Real world module with reset inverted")
-  //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(8))
-  ChiselStage.emitSystemVerilogFile(
-    new TopSpi2Wb(dwidth=8),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
@@ -294,18 +232,9 @@ object Spi2WbExt8 extends App {
   println("*****************************************************")
   println("* Generate 8Bits data with 15bits extended address *")
   println("*****************************************************")
-  println("Virgin module")
-  ChiselStage.emitSystemVerilogFile(
-    new Spi2Wb(dwidth=8, awidth=7, addr_ext=true),
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
-      "-strip-debug-info"),
-    args=args)
 
-  println("Real world module with reset inverted")
   ChiselStage.emitSystemVerilogFile(
-    new TopSpi2Wb(dwidth=8, extaddr=true),
+    new Spi2Wb(dwidth=8, awidth=15, addr_ext=true),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
@@ -317,20 +246,9 @@ object Spi2Wb16 extends App {
   println("****************************")
   println("* Generate 16Bits data vers*")
   println("****************************")
-  println("Virgin module")
-  //chisel3.Driver.execute(Array[String](), () => new Spi2Wb(16, 7))
+
   ChiselStage.emitSystemVerilogFile(
     new Spi2Wb(dwidth=16, awidth=7),
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
-      "-strip-debug-info"),
-    args=args)
-
-  println("Real world module with reset inverted")
-  //chisel3.Driver.execute(Array[String](), () => new TopSpi2Wb(16))
-  ChiselStage.emitSystemVerilogFile(
-    new TopSpi2Wb(dwidth=16),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
@@ -343,18 +261,9 @@ object Spi2WbExt16 extends App {
   println("*****************************************************")
   println("* Generate 16Bits data with 15bits extended address *")
   println("*****************************************************")
-  println("Virgin module")
+
   ChiselStage.emitSystemVerilogFile(
     new Spi2Wb(dwidth=16, awidth=15, addr_ext=true),
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
-      "-strip-debug-info"),
-    args=args)
-
-  println("Real world module with reset inverted")
-  ChiselStage.emitSystemVerilogFile(
-    new TopSpi2Wb(dwidth=16, extaddr=true),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
@@ -367,18 +276,9 @@ object Spi2WbExt16Burst extends App {
   println("* Generate 16Bits data with 14bits extended address *")
   println("* And Burst mode activated                          *")
   println("*****************************************************")
-  println("Virgin module")
+
   ChiselStage.emitSystemVerilogFile(
     new Spi2Wb(dwidth=16, awidth=14, aburst=true, addr_ext=true),
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
-      "-strip-debug-info"),
-    args=args)
-
-  println("Real world module with reset inverted")
-  ChiselStage.emitSystemVerilogFile(
-    new TopSpi2Wb(dwidth=16, aburst=true, extaddr=true),
     firtoolOpts = Array(
       "-disable-all-randomization",
       "--lowering-options=disallowLocalVariables", // avoid 'automatic logic'
