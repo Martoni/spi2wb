@@ -19,7 +19,8 @@ class SpiSlave extends Bundle {
 class Spi2Wb (dwidth: Int, awidth: Int,
               aburst: Boolean = false,
               addr_ext: Boolean = false,
-              wbfeature_err: Boolean = false) extends Module {
+              wbfeature_err: Boolean = false,
+              burst_auto_incr: Boolean = true) extends Module {
   val io = IO(new Bundle{
     // Wishbone master output
     val wbm = new WbMaster(dwidth, awidth, feature_err = wbfeature_err)
@@ -160,7 +161,9 @@ class Spi2Wb (dwidth: Int, awidth: Int,
       else{
         when(count >= (1 + spiAddressWidth + dwidth).U){
           when(fallingedge(sclkReg)){
-            addrReg := addrReg + 1.U
+            if (burst_auto_incr) {
+              addrReg := addrReg + 1.U
+            }
             count := (spiAddressWidth + 1).U
             wbWeReg  := false.B
             wbStbReg := true.B
@@ -189,7 +192,9 @@ class Spi2Wb (dwidth: Int, awidth: Int,
             wbCycReg := false.B
             stateReg := sinit
           }else{
-            addrReg := addrReg + 1.U
+            if (burst_auto_incr) {
+              addrReg := addrReg + 1.U
+            }
             count := (spiAddressWidth + 1).U
             dataReg := 0.U
             stateReg := sdatawrite
