@@ -103,7 +103,7 @@ With following :
 - ZZZZZZZZZZZZZZ: Don't care signal
 
 In burst mode, wishbone word address will be increased by 1 each word
-read/write.
+read/write if `burst_auto_incr` is set to `true`.
 
 ## Install instructions
 
